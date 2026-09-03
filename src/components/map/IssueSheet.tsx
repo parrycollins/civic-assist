@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { CATEGORY_META, STATUS_META } from "@/lib/constants";
 import { formatDate, fromNow } from "@/lib/format";
@@ -40,20 +39,44 @@ export function IssueSheet({
   onOpenChange: (open: boolean) => void;
   agencyActions?: React.ReactNode;
 }) {
-  if (!issue) return null;
+  if (!open || !issue) return null;
+
   const agency = getAgency(issue.agencyId);
   const resolved = issue.timeline.find((e) => e.status === "resolved");
   const days = resolutionDays(issue);
   const photo = issue.evidence.find((e) => e.stage === "before") ?? issue.evidence[0];
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="mx-auto max-w-lg">
-        <DrawerHeader className="gap-0 text-left">
-          <DrawerTitle className="pr-8 text-xl">{issue.title}</DrawerTitle>
-          <p className="text-sm text-muted-foreground">{CATEGORY_META[issue.category].label}</p>
-        </DrawerHeader>
-        <div className="space-y-4 px-4 pb-6">
+    <div className="pointer-events-none absolute inset-0 z-[2000]">
+      <button
+        type="button"
+        aria-label="Close issue card"
+        className="pointer-events-auto absolute inset-0 bg-black/20"
+        onClick={() => onOpenChange(false)}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="issue-card-title"
+        className="pointer-events-auto absolute inset-x-0 bottom-0 mx-auto max-h-[min(78dvh,40rem)] w-full max-w-lg overflow-y-auto rounded-t-2xl border bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] shadow-2xl md:bottom-6 md:mx-auto md:max-h-[min(80dvh,42rem)] md:rounded-2xl md:pb-6"
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{CATEGORY_META[issue.category].label}</p>
+            <h2 id="issue-card-title" className="font-heading text-xl font-semibold">
+              {issue.title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-full border p-1.5 text-muted-foreground hover:bg-muted"
+            aria-label="Close"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="space-y-4 px-4 py-4">
           <div className="overflow-hidden rounded-xl border">
             <IssuePhoto
               photoKey={photo?.photoKey ?? issue.photoKey}
@@ -88,7 +111,11 @@ export function IssueSheet({
               <ul className="mt-1 space-y-0.5 text-emerald-950 dark:text-emerald-100">
                 <li>Reported by: {issue.reporterCount} citizens</li>
                 <li>Resolved by: {agency?.name}</li>
-                {days !== null && <li>Resolution time: {days} day{days === 1 ? "" : "s"}</li>}
+                {days !== null && (
+                  <li>
+                    Resolution time: {days} day{days === 1 ? "" : "s"}
+                  </li>
+                )}
                 <li>
                   Citizen verification: {issue.verificationCount}/{issue.reporterCount}
                 </li>
@@ -101,15 +128,12 @@ export function IssueSheet({
             {issue.isRoadRelated && <Badge variant="outline">Road condition</Badge>}
             {issue.confidence >= 0.75 && <Badge variant="secondary">High confidence</Badge>}
           </div>
-          <Link
-            href={`/issues/${issue.id}`}
-            className={cn(buttonVariants({ size: "lg" }), "w-full")}
-          >
+          <Link href={`/issues/${issue.id}`} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
             View Details
           </Link>
           {agencyActions}
         </div>
-      </DrawerContent>
-    </Drawer>
+      </aside>
+    </div>
   );
 }

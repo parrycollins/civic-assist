@@ -94,7 +94,10 @@ function IssueLayers({
           title: `${issue.title} (${issue.status})`,
           alt: `${issue.title}, ${issue.status.replace(/_/g, " ")}`,
         });
-        marker.on("click", () => onSelect(issue.id));
+        marker.on("click", (event) => {
+          L.DomEvent.stopPropagation(event);
+          onSelect(issue.id);
+        });
         cluster.addLayer(marker);
       }
       map.addLayer(cluster);
