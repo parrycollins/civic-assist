@@ -37,8 +37,8 @@ export const STATUS_META: Record<
   },
   assigned: {
     label: "Assigned",
-    color: "#A16207",
-    fill: "#FEF9C3",
+    color: "#5B21B6",
+    fill: "#EDE9FE",
     shape: "square",
     glyph: "A",
     short: "Assigned",
@@ -86,7 +86,7 @@ export const CATEGORY_META: Record<
   Category,
   { label: string; icon: string; roadDefault?: RoadHazard }
 > = {
-  roads: { label: "Roads", icon: "🛣️", roadDefault: "pothole" },
+  roads: { label: "Roads", icon: "🕳️", roadDefault: "pothole" },
   flooding: { label: "Flooding", icon: "🌊", roadDefault: "flooding" },
   drainage: { label: "Drainage", icon: "🚰" },
   waste: { label: "Waste", icon: "🗑️" },

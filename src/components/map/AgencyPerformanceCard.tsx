@@ -1,8 +1,9 @@
 "use client";
 
 import { AGENCIES, getAgency } from "@/data/agencies";
-import { agencyPerformance } from "@/lib/performance";
+import { agencyPerformance, performanceBand } from "@/lib/performance";
 import type { Issue } from "@/lib/types";
+import { ProgressRing } from "@/components/ui-kit/ProgressRing";
 
 export function AgencyPerformanceCard({
   agencyId,
@@ -14,31 +15,26 @@ export function AgencyPerformanceCard({
   const agency = getAgency(agencyId) ?? AGENCIES[0];
   const stats = agencyPerformance(issues, agency.id);
   return (
-    <div className="rounded-2xl border bg-background/95 p-3 text-sm shadow-lg backdrop-blur">
-      <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        Agency Performance
-      </p>
-      <p className="mt-0.5 font-semibold">{agency.name}</p>
-      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-        <div>
-          Complaints received: <strong>{stats.received.toLocaleString()}</strong>
-        </div>
-        <div>
-          Resolved: <strong>{stats.resolved.toLocaleString()}</strong>
-        </div>
-        <div>
-          Resolution rate: <strong>{stats.resolutionRate.toFixed(1)}%</strong>
-        </div>
-        <div>
-          Average resolution time: <strong>{stats.averageResolutionDays} days</strong>
-        </div>
-        <div>
-          Citizen verified: <strong>{stats.citizenVerified.toLocaleString()}</strong>
-        </div>
-        <div>
-          Overdue: <strong>{stats.overdue}</strong>
-        </div>
-      </dl>
+    <div className="rounded-[1.5rem] bg-card/95 p-4 text-sm shadow-[0_16px_40px_-22px_rgb(16_32_24/0.45)] backdrop-blur-xl">
+      <p className="text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">Agency Performance</p>
+      <p className="mt-0.5 font-heading font-bold">{agency.name}</p>
+      <div className="mt-2 flex items-center gap-3">
+        <ProgressRing value={stats.resolutionRate} label={performanceBand(stats.resolutionRate)} size={96} />
+        <dl className="grid flex-1 gap-1 text-xs">
+          <div>
+            Resolution rate <strong>{stats.resolutionRate.toFixed(1)}%</strong>
+          </div>
+          <div>
+            Avg resolution <strong>{stats.averageResolutionDays} days</strong>
+          </div>
+          <div>
+            Verified <strong>{stats.citizenVerified}</strong>
+          </div>
+          <div>
+            Overdue <strong>{stats.overdue}</strong>
+          </div>
+        </dl>
+      </div>
     </div>
   );
 }

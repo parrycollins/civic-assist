@@ -1,18 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Filter, LocateFixed, X } from "lucide-react";
+import { Filter, Layers, LocateFixed, X } from "lucide-react";
 import { AGENCIES } from "@/data/agencies";
 import { AREAS } from "@/data/areas";
 import { CATEGORY_META, RADIUS_OPTIONS, STATUS_META } from "@/lib/constants";
 import { ISSUE_STATUSES } from "@/lib/types";
 import type { Category, IssueStatus, MapFilters, MapLayerMode } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const selectClass =
-  "h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "h-10 w-full rounded-2xl border-0 bg-secondary px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function MapToolbar({
   filters,
@@ -45,43 +43,54 @@ export function MapToolbar({
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-[400] p-3 sm:p-4">
-      <div className="pointer-events-auto mx-auto flex max-w-3xl flex-col gap-2">
+      <div className="pointer-events-auto mx-auto flex max-w-xl flex-col gap-3">
         <form
-          className="flex items-center gap-2 rounded-2xl border bg-background/95 p-1.5 shadow-lg backdrop-blur"
+          className="flex items-center gap-2 rounded-[1.4rem] bg-card/95 p-2 shadow-[0_16px_40px_-22px_rgb(16_32_24/0.45)] backdrop-blur-xl"
           onSubmit={(e) => {
             e.preventDefault();
             onSearchSubmit(filters.searchQuery);
           }}
         >
-          <Input
+          <input
             value={filters.searchQuery}
             onChange={(e) => onChange({ ...filters, searchQuery: e.target.value })}
-            placeholder="Search areas, streets, neighborhoods, categories…"
-            className="h-10 border-0 bg-transparent shadow-none focus-visible:ring-0"
+            placeholder="Search Accra areas, streets, categories"
+            className="h-11 flex-1 bg-transparent px-3 text-sm outline-none"
             aria-label="Search the civic map"
           />
-          <Button type="button" variant="outline" size="sm" onClick={() => setOpen((v) => !v)}>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="relative grid size-11 place-items-center rounded-2xl bg-secondary"
+            aria-label="Filters"
+          >
             <Filter className="size-4" />
-            Filters
             {activeFilters > 0 && (
-              <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
+              <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-gold text-[10px] font-bold text-gold-foreground">
                 {activeFilters}
               </span>
             )}
-          </Button>
-          <Button type="button" variant={filters.nearMe ? "default" : "outline"} size="sm" onClick={onNearMe}>
+          </button>
+          <button
+            type="button"
+            onClick={onNearMe}
+            className={cn(
+              "grid size-11 place-items-center rounded-2xl",
+              filters.nearMe ? "bg-primary text-primary-foreground" : "bg-secondary",
+            )}
+            aria-label="Near me"
+          >
             <LocateFixed className="size-4" />
-            {locating ? "Locating…" : "Near Me"}
-          </Button>
+          </button>
         </form>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {(
             [
               ["all", "All"],
               ["problems", "Problems"],
-              ["progress", "Work in Progress"],
-              ["completed", "Completed Work"],
+              ["progress", "In progress"],
+              ["completed", "Completed"],
             ] as [MapLayerMode, string][]
           ).map(([id, label]) => (
             <button
@@ -89,10 +98,8 @@ export function MapToolbar({
               type="button"
               onClick={() => onChange({ ...filters, layerMode: id })}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium shadow-sm backdrop-blur",
-                filters.layerMode === id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background/90",
+                "rounded-full px-3 py-1.5 text-xs font-bold shadow-sm backdrop-blur",
+                filters.layerMode === id ? "bg-primary text-primary-foreground" : "bg-card/90 text-foreground",
               )}
             >
               {label}
@@ -106,32 +113,27 @@ export function MapToolbar({
                 viewMode: filters.viewMode === "markers" ? "density" : "markers",
               })
             }
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium shadow-sm backdrop-blur",
-              filters.viewMode === "density"
-                ? "border-orange-600 bg-orange-600 text-white"
-                : "border-border bg-background/90",
-            )}
+            className="inline-flex items-center gap-1 rounded-full bg-card/90 px-3 py-1.5 text-xs font-bold shadow-sm"
           >
-            {filters.viewMode === "density" ? "Problem Density View" : "Markers View"}
+            <Layers className="size-3.5" />
+            {filters.viewMode === "density" ? "Density" : "Markers"}
           </button>
-          <span className="self-center rounded-full bg-background/90 px-2 py-1 text-[11px] text-muted-foreground shadow-sm">
+          <span className="self-center rounded-full bg-card/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
             {resultCount} shown
           </span>
         </div>
         {extra}
 
         {open && (
-          <div className="rounded-2xl border bg-background/95 p-3 shadow-xl backdrop-blur">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-semibold">Map filters</p>
+          <div className="rounded-[1.5rem] bg-card p-4 shadow-[0_20px_50px_-24px_rgb(16_32_24/0.4)]">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="font-heading font-bold">Filters</p>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close filters">
                 <X className="size-4" />
               </button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-xs font-medium">
-                Status
+              <Field label="Status">
                 <select
                   className={selectClass}
                   value={filters.statuses === "all" ? "all" : filters.statuses[0]}
@@ -149,9 +151,8 @@ export function MapToolbar({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="grid gap-1 text-xs font-medium">
-                Category
+              </Field>
+              <Field label="Category">
                 <select
                   className={selectClass}
                   value={filters.categories === "all" ? "all" : filters.categories[0]}
@@ -165,13 +166,12 @@ export function MapToolbar({
                   <option value="all">All</option>
                   {Object.entries(CATEGORY_META).map(([id, meta]) => (
                     <option key={id} value={id}>
-                      {meta.label}
+                      {meta.icon} {meta.label}
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="grid gap-1 text-xs font-medium">
-                Agency
+              </Field>
+              <Field label="Agency">
                 <select
                   className={selectClass}
                   value={filters.agencyId}
@@ -184,9 +184,8 @@ export function MapToolbar({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="grid gap-1 text-xs font-medium">
-                Area / municipality
+              </Field>
+              <Field label="Area">
                 <select
                   className={selectClass}
                   value={filters.areaId}
@@ -195,13 +194,12 @@ export function MapToolbar({
                   <option value="all">All areas</option>
                   {AREAS.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name} ({a.municipality})
+                      {a.name}
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="grid gap-1 text-xs font-medium">
-                Date reported
+              </Field>
+              <Field label="Date">
                 <select
                   className={selectClass}
                   value={filters.datePreset}
@@ -219,26 +217,15 @@ export function MapToolbar({
                   <option value="quarter">Last 3 months</option>
                   <option value="custom">Custom range</option>
                 </select>
-              </label>
+              </Field>
               {filters.datePreset === "custom" && (
                 <div className="grid grid-cols-2 gap-2 sm:col-span-2">
-                  <input
-                    type="date"
-                    className={selectClass}
-                    value={filters.customFrom ?? ""}
-                    onChange={(e) => onChange({ ...filters, customFrom: e.target.value })}
-                  />
-                  <input
-                    type="date"
-                    className={selectClass}
-                    value={filters.customTo ?? ""}
-                    onChange={(e) => onChange({ ...filters, customTo: e.target.value })}
-                  />
+                  <input type="date" className={selectClass} value={filters.customFrom ?? ""} onChange={(e) => onChange({ ...filters, customFrom: e.target.value })} />
+                  <input type="date" className={selectClass} value={filters.customTo ?? ""} onChange={(e) => onChange({ ...filters, customTo: e.target.value })} />
                 </div>
               )}
               {filters.nearMe && (
-                <label className="grid gap-1 text-xs font-medium">
-                  Near me radius
+                <Field label="Near me radius">
                   <select
                     className={selectClass}
                     value={filters.nearRadiusKm}
@@ -255,16 +242,24 @@ export function MapToolbar({
                       </option>
                     ))}
                   </select>
-                </label>
+                </Field>
               )}
             </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              Public pins show the problem, not who reported it. Near Me uses an approximate area — never your exact
-              location.
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">
+              Pins show the problem, not the reporter. Near Me uses an approximate area.
             </p>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+      {label}
+      {children}
+    </label>
   );
 }

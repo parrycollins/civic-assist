@@ -15,11 +15,10 @@ export function IssueTimeline({ events }: { events: TimelineEvent[] }) {
           <li key={event.id} className="flex gap-3">
             <div className="flex flex-col items-center">
               <span
-                className="flex size-8 items-center justify-center rounded-full border text-xs font-bold"
+                className="flex size-8 items-center justify-center rounded-full text-xs font-bold"
                 style={{
-                  background: statusMeta?.fill ?? "#e2e8f0",
-                  color: statusMeta?.color ?? "#0f172a",
-                  borderColor: statusMeta?.color ?? "#94a3b8",
+                  background: statusMeta?.fill ?? "#ece6d8",
+                  color: statusMeta?.color ?? "#1c211c",
                 }}
               >
                 {statusMeta?.glyph ?? "•"}
@@ -27,10 +26,10 @@ export function IssueTimeline({ events }: { events: TimelineEvent[] }) {
               {i < events.length - 1 && <span className="w-px flex-1 bg-border" />}
             </div>
             <div className={cn("pb-5", i === events.length - 1 && "pb-0")}>
-              <p className="font-semibold">{event.label}</p>
+              <p className="font-heading font-bold">{event.label}</p>
               <p className="text-sm text-muted-foreground">{formatShortDate(event.timestamp)}</p>
-              <p className="text-xs text-muted-foreground">{event.actor}</p>
-              {event.note && <p className="mt-1 text-sm">{event.note}</p>}
+              <p className="text-xs font-medium text-muted-foreground">{event.actor}</p>
+              {event.note && <p className="mt-1 text-sm leading-6">{event.note}</p>}
             </div>
           </li>
         );

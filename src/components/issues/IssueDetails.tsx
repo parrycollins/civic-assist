@@ -9,9 +9,9 @@ import { getRoadSegment } from "@/data/roads";
 import { EvidenceGallery } from "@/components/issues/EvidenceGallery";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { IssueTimeline } from "@/components/issues/IssueTimeline";
+import { StatusTrack } from "@/components/issues/StatusTrack";
 import { StatusPill } from "@/components/map/IssueSheet";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { ErrorState } from "@/components/ui-kit/ErrorState";
 import { CATEGORY_META, STATUS_META } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
 import { isOverdue, resolutionDays } from "@/lib/performance";
@@ -47,11 +47,13 @@ export function IssueDetails() {
 
   if (!issue) {
     return (
-      <div className="px-4 py-16 text-center">
-        <p className="font-heading text-lg font-semibold">Complaint not found</p>
-        <Link href="/map" className="mt-2 inline-block text-sm text-primary">
-          Back to map
-        </Link>
+      <div className="mx-auto max-w-lg px-4 py-16">
+        <ErrorState
+          title="Complaint not found"
+          body="That report may have been reset or the link is no longer valid."
+          actionHref="/map"
+          actionLabel="Back to map"
+        />
       </div>
     );
   }
@@ -63,58 +65,47 @@ export function IssueDetails() {
   const completed = STATUS_META[issue.status].layer === "completed";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-6">
-      <div>
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{issue.id}</p>
-        <h1 className="font-heading text-2xl font-semibold">
-          {issue.title} — {issue.location.area}
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+      <div className="animate-civic-in">
+        <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground uppercase">{issue.id}</p>
+        <h1 className="mt-1 font-heading text-3xl font-extrabold leading-tight">
+          {CATEGORY_META[issue.category].icon} {issue.title}
         </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <p className="mt-2 text-sm text-muted-foreground">
+          {issue.location.area} · {issue.location.publicLabel}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <StatusPill status={issue.status} />
-          <span className="text-sm text-muted-foreground">{CATEGORY_META[issue.category].label}</span>
+          <span className="text-sm font-medium text-muted-foreground">{CATEGORY_META[issue.category].label}</span>
         </div>
       </div>
 
       <IssuePhoto
         photoKey={issue.photoKey}
         imageDataUrl={issue.evidence[0]?.imageDataUrl}
-        className="h-52 w-full rounded-2xl border"
+        className="h-56 w-full rounded-[1.8rem] card-lift"
       />
 
-      <p className="leading-7">{issue.description}</p>
+      <p className="text-base leading-7">{issue.description}</p>
 
-      <dl className="grid gap-2 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="text-muted-foreground">Location</dt>
-          <dd>{issue.location.publicLabel}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Reported</dt>
-          <dd>{formatDate(issue.reportedAt)}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Responsible agency</dt>
-          <dd>{agency?.name}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Reports / people affected</dt>
-          <dd>
-            {issue.reporterCount} / {issue.affectedCount ?? issue.reporterCount}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Confidence</dt>
-          <dd>{Math.round(issue.confidence * 100)}% · {issue.supportingReports} supporting · {issue.denials} say it is gone</dd>
-        </div>
-        {isOverdue(issue) && <div className="text-destructive">Overdue against the agency due date</div>}
-      </dl>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Meta label="Location" value={issue.location.publicLabel} />
+        <Meta label="Reported" value={formatDate(issue.reportedAt)} />
+        <Meta label="Responsible agency" value={agency?.name ?? "Unassigned"} />
+        <Meta label="Reports / people affected" value={`${issue.reporterCount} / ${issue.affectedCount ?? issue.reporterCount}`} />
+        <Meta
+          label="Confidence"
+          value={`${Math.round(issue.confidence * 100)}% · ${issue.supportingReports} supporting · ${issue.denials} say it is gone`}
+        />
+        {isOverdue(issue) && <Meta label="Due date" value="Overdue against the agency due date" />}
+      </div>
 
       {completed && (
-        <section className="rounded-2xl border bg-emerald-50 p-4 dark:bg-emerald-950/30">
-          <h2 className="font-heading font-semibold">Community impact</h2>
-          <ul className="mt-2 space-y-1 text-sm">
-            <li>Reported by: {issue.reporterCount} citizens</li>
-            <li>Resolved by: {agency?.name}</li>
+        <section className="rounded-[1.6rem] bg-emerald-50 p-5 dark:bg-emerald-950/30">
+          <h2 className="font-heading text-lg font-bold">Community impact</h2>
+          <ul className="mt-3 space-y-2 text-sm leading-6">
+            <li>Reported by {issue.reporterCount} citizens</li>
+            <li>Resolved by {agency?.name}</li>
             {days !== null && <li>Resolution time: {days} days</li>}
             <li>
               Citizen verification: {issue.verificationCount}/{issue.reporterCount}
@@ -124,14 +115,19 @@ export function IssueDetails() {
         </section>
       )}
 
+      <section className="card-lift rounded-[1.7rem] bg-card p-5">
+        <h2 className="mb-4 font-heading text-lg font-bold">Progress</h2>
+        <StatusTrack status={issue.status} events={issue.timeline} />
+      </section>
+
       <section>
-        <h2 className="mb-3 font-heading text-lg font-semibold">History</h2>
+        <h2 className="mb-3 font-heading text-lg font-bold">History</h2>
         <IssueTimeline events={issue.timeline} />
       </section>
 
       <section>
-        <h2 className="mb-3 font-heading text-lg font-semibold">Before &amp; after evidence</h2>
-        <p className="mb-3 text-sm text-muted-foreground">
+        <h2 className="mb-2 font-heading text-lg font-bold">Before / during / after</h2>
+        <p className="mb-4 text-sm leading-6 text-muted-foreground">
           Agencies can add photos when they update a complaint. Original evidence is kept — new uploads are appended,
           never replaced.
         </p>
@@ -139,12 +135,12 @@ export function IssueDetails() {
       </section>
 
       {road && (
-        <section>
-          <h2 className="mb-2 font-heading text-lg font-semibold">Road history · {road.name}</h2>
+        <section className="card-lift rounded-[1.6rem] bg-card p-5">
+          <h2 className="mb-3 font-heading text-lg font-bold">Road history · {road.name}</h2>
           <ol className="space-y-2 text-sm">
             {road.history.map((h) => (
-              <li key={h.id} className="rounded-lg border p-3">
-                <p className="font-medium">
+              <li key={h.id} className="rounded-2xl bg-secondary/70 p-3">
+                <p className="font-semibold">
                   {h.month}: {h.label}
                 </p>
                 <p className="text-muted-foreground">{h.detail}</p>
@@ -154,81 +150,88 @@ export function IssueDetails() {
         </section>
       )}
 
-      <section className="grid gap-2 rounded-2xl border p-4">
-        <h2 className="font-heading font-semibold">Community confirmation</h2>
-        <p className="text-sm text-muted-foreground">
+      <section className="card-lift grid gap-3 rounded-[1.6rem] bg-card p-5">
+        <h2 className="font-heading text-lg font-bold">Community confirmation</h2>
+        <p className="text-sm leading-6 text-muted-foreground">
           One report is not treated as confirmed. Confirming or saying the problem is gone changes confidence used by
           Road Assist.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
+          <button
+            type="button"
+            className="h-11 rounded-2xl bg-secondary px-4 text-sm font-bold"
             onClick={() => {
               confirmIssue(issue.id, true);
               toast.success("Thanks — this report is more confident.");
             }}
           >
             Still there
-          </Button>
-          <Button
-            variant="outline"
+          </button>
+          <button
+            type="button"
+            className="h-11 rounded-2xl bg-secondary px-4 text-sm font-bold"
             onClick={() => {
               confirmIssue(issue.id, false);
               toast.success("Noted — confidence reduced.");
             }}
           >
             No longer there
-          </Button>
+          </button>
           {completed && user?.role === "citizen" && (
-            <Button
+            <button
+              type="button"
+              className="h-11 rounded-2xl bg-primary px-4 text-sm font-bold text-primary-foreground"
               onClick={() => {
                 verifyIssue(issue.id);
                 toast.success("Your verification was recorded.");
               }}
             >
               Verify completed work
-            </Button>
+            </button>
           )}
           {user?.role === "citizen" && completed && (
-            <Button
-              variant="destructive"
+            <button
+              type="button"
+              className="h-11 rounded-2xl bg-destructive/10 px-4 text-sm font-bold text-destructive"
               onClick={() => {
                 disputeIssue(issue.id, "Citizen says the problem has returned.");
                 toast.message("Issue reopened as disputed.");
               }}
             >
               Dispute / reopen
-            </Button>
+            </button>
           )}
         </div>
       </section>
 
       {canAgency && (
-        <section className="grid gap-3 rounded-2xl border p-4">
-          <h2 className="font-heading font-semibold">Agency update</h2>
+        <section className="card-lift grid gap-3 rounded-[1.6rem] bg-card p-5">
+          <h2 className="font-heading text-lg font-bold">Agency update</h2>
           <div className="flex flex-wrap gap-2">
             {nextStatuses.map((status) => (
-              <Button
+              <button
                 key={status}
-                variant="secondary"
+                type="button"
+                className="h-11 rounded-2xl bg-secondary px-4 text-sm font-bold"
                 onClick={() => {
                   updateIssueStatus(issue.id, status, note || undefined);
                   toast.success(`Status set to ${STATUS_META[status].label}. The public map updates immediately.`);
                 }}
               >
                 Mark {STATUS_META[status].label}
-              </Button>
+              </button>
             ))}
           </div>
-          <Textarea
+          <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Optional public note (no personal data)"
+            className="min-h-24 rounded-2xl bg-secondary px-4 py-3 text-sm outline-none"
           />
           <div className="grid gap-2">
-            <p className="text-sm font-medium">Upload evidence (kept in audit history)</p>
+            <p className="text-sm font-semibold">Upload evidence (kept in audit history)</p>
             <select
-              className="h-9 rounded-lg border px-2 text-sm"
+              className="h-11 rounded-2xl bg-secondary px-3 text-sm"
               value={stage}
               onChange={(e) => setStage(e.target.value as EvidenceStage)}
             >
@@ -254,12 +257,21 @@ export function IssueDetails() {
         </section>
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs leading-5 text-muted-foreground">
         Public pages do not show citizen phone numbers, emails, or exact residential locations.
       </p>
-      <Link href="/map" className="text-sm font-medium text-primary">
+      <Link href="/map" className="inline-flex text-sm font-bold text-primary">
         Back to map
       </Link>
+    </div>
+  );
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.3rem] bg-card px-4 py-3 card-lift">
+      <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{label}</p>
+      <p className="mt-1 text-sm font-semibold">{value}</p>
     </div>
   );
 }

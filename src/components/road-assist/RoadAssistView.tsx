@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Layers, LocateFixed, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { findPlaces } from "@/data/areas";
 import { HAZARD_META } from "@/lib/constants";
@@ -12,8 +13,6 @@ import { useCivicStore } from "@/lib/store";
 import type { GeoPoint, RoadHazard, RoutePreference, ScoredRoute } from "@/lib/types";
 import { CivicMapCanvas } from "@/components/map/CivicMapCanvas";
 import { IssueSheet } from "@/components/map/IssueSheet";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const QUICK: { id: RoadHazard; label: string }[] = [
@@ -48,6 +47,20 @@ const DEFAULT_LAYERS: Layers = {
   myLocation: true,
 };
 
+function routeTitle(route: ScoredRoute, routes: ScoredRoute[], recommended?: ScoredRoute) {
+  const fastest = [...routes].sort((a, b) => a.durationMin - b.durationMin)[0];
+  if (route.id === recommended?.id) return "Recommended";
+  if (route.id === fastest?.id) return "Fastest";
+  return "Alternative";
+}
+
+function conditionLine(route: ScoredRoute) {
+  if (route.floodWarning) return "⚠️ Flooding reported nearby";
+  if (route.hazards.length > 0) return `⚠️ ${route.hazards.length} road issue${route.hazards.length === 1 ? "" : "s"}`;
+  if (route.conditionScore >= 75) return "🟢 Good road condition";
+  return "🟡 Fair road condition";
+}
+
 export function RoadAssistView() {
   const issues = useCivicStore((s) => s.issues);
   const user = useCivicStore((s) => s.user);
@@ -68,6 +81,7 @@ export function RoadAssistView() {
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [flyTo, setFlyTo] = useState<GeoPoint | null>(origin);
 
   const visibleIssues = useMemo(() => {
@@ -198,207 +212,243 @@ export function RoadAssistView() {
 
       {!navigating && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[400] p-3">
-          <div className="pointer-events-auto mx-auto max-w-xl space-y-2 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur">
-            <div className="flex items-center justify-between">
-              <p className="font-heading font-semibold">Road Assist</p>
-              <Link href="/map" className="text-xs font-medium text-primary">
-                Civic Map
-              </Link>
-            </div>
-            <Input
-              value={originQuery}
-              onChange={(e) => setOriginQuery(e.target.value)}
-              placeholder="Starting location"
-              onBlur={() => {
-                const hit = findPlaces(originQuery)[0];
-                if (hit) {
-                  setOrigin(hit.center);
-                  setOriginQuery(hit.name);
-                }
-              }}
-            />
-            <div className="flex gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={useCurrentOrigin}>
-                Use current location
-              </Button>
-            </div>
-            <form
-              className="flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void searchDestination(destQuery).then((p) => p && compareRoutes(p));
-              }}
-            >
-              <Input
-                value={destQuery}
-                onChange={(e) => setDestQuery(e.target.value)}
-                placeholder="Search destination — East Legon, Accra Mall…"
-              />
-              <Button type="submit" disabled={loading}>
-                {loading ? "Routing…" : "Go"}
-              </Button>
-            </form>
-            <div className="flex flex-wrap gap-1.5">
-              {(
-                [
-                  ["fastest", "Fastest Route"],
-                  ["condition", "Best Road Condition"],
-                  ["balanced", "Balanced Route"],
-                ] as [RoutePreference, string][]
-              ).map(([id, label]) => (
+          <div className="pointer-events-auto mx-auto max-w-xl space-y-3">
+            <div className="rounded-[1.6rem] bg-card/95 p-4 shadow-[0_16px_40px_-22px_rgb(16_32_24/0.45)] backdrop-blur-xl">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="font-heading text-lg font-extrabold">Road Assist</p>
+                  <p className="text-xs text-muted-foreground">Premium civic navigation</p>
+                </div>
+                <Link href="/map" className="text-xs font-bold text-primary">
+                  Civic Map
+                </Link>
+              </div>
+              <p className="text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">Where are you going?</p>
+              <form
+                className="mt-2 flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void searchDestination(destQuery).then((p) => p && compareRoutes(p));
+                }}
+              >
+                <input
+                  value={destQuery}
+                  onChange={(e) => setDestQuery(e.target.value)}
+                  placeholder="East Legon, Accra Mall, Spintex…"
+                  className="h-13 h-12 flex-1 rounded-2xl bg-secondary px-4 text-base outline-none"
+                  aria-label="Search destination"
+                />
                 <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    setPreference(id);
-                    if (routes.length) {
-                      const rec = pickRecommendedRoute(routes, id);
-                      setSelectedRouteId(rec?.id);
+                  type="submit"
+                  disabled={loading}
+                  className="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground"
+                  aria-label="Find routes"
+                >
+                  <Navigation className="size-5" />
+                </button>
+              </form>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input
+                  value={originQuery}
+                  onChange={(e) => setOriginQuery(e.target.value)}
+                  onBlur={() => {
+                    const hit = findPlaces(originQuery)[0];
+                    if (hit) {
+                      setOrigin(hit.center);
+                      setOriginQuery(hit.name);
                     }
                   }}
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                    preference === id ? "border-primary bg-primary text-primary-foreground" : "bg-background",
-                  )}
+                  className="h-10 min-w-0 flex-1 rounded-2xl bg-secondary px-3 text-sm outline-none"
+                  aria-label="Starting location"
+                />
+                <button
+                  type="button"
+                  onClick={useCurrentOrigin}
+                  className="inline-flex h-10 items-center gap-1 rounded-2xl bg-secondary px-3 text-xs font-bold"
                 >
-                  {label}
+                  <LocateFixed className="size-3.5" />
+                  Current
                 </button>
-              ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {(
+                  [
+                    ["balanced", "Recommended"],
+                    ["fastest", "Fastest"],
+                    ["condition", "Best condition"],
+                  ] as [RoutePreference, string][]
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setPreference(id);
+                      if (routes.length) {
+                        const rec = pickRecommendedRoute(routes, id);
+                        setSelectedRouteId(rec?.id);
+                      }
+                    }}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-[11px] font-bold",
+                      preference === id ? "bg-primary text-primary-foreground" : "bg-secondary",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {navigating && (
-        <div className="absolute inset-x-0 top-0 z-[500] bg-amber-500 px-4 py-3 text-center text-sm font-semibold text-amber-950">
+        <div className="absolute inset-x-0 top-0 z-[500] bg-gold px-4 py-3 text-center text-sm font-bold text-gold-foreground">
           You are navigating. Do not interact while driving. Ask a passenger to report hazards, or stop first.
         </div>
       )}
 
       {!navigating && routes.length > 0 && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-20 z-[400] max-h-[40vh] overflow-y-auto p-3 md:bottom-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-20 z-[400] max-h-[46vh] overflow-y-auto p-3 md:bottom-4">
           <div className="pointer-events-auto mx-auto grid max-w-xl gap-2">
-            {chosen?.recommendation && (
-              <div className="rounded-xl border border-emerald-700/30 bg-emerald-50 p-3 text-sm dark:bg-emerald-950/50">
-                <p className="font-semibold">Recommended Route</p>
-                <p>{chosen.recommendation}</p>
-              </div>
-            )}
             {chosen?.floodWarning && (
-              <div className="rounded-xl border border-red-700/40 bg-red-50 p-3 text-sm">
+              <div className="rounded-[1.3rem] bg-red-50 p-3 text-sm dark:bg-red-950/50">
                 ⚠️ Flooding reported on this route. An alternative with fewer flood reports is highlighted when
-                available. CivicGH does not treat old flood complaints as proof that a road is flooded today.
+                available.
               </div>
             )}
-            {routes.map((route) => (
-              <button
-                key={route.id}
-                type="button"
-                onClick={() => setSelectedRouteId(route.id)}
-                className={cn(
-                  "rounded-xl border bg-background p-3 text-left shadow-sm",
-                  route.id === chosen?.id && "ring-2 ring-primary",
-                )}
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="font-semibold">{route.label}</p>
-                  <p className="text-sm">
-                    {route.durationMin} min — {route.distanceKm} km
+            {routes.map((route) => {
+              const title = routeTitle(route, routes, chosen);
+              const recommended = title === "Recommended";
+              return (
+                <button
+                  key={route.id}
+                  type="button"
+                  onClick={() => setSelectedRouteId(route.id)}
+                  className={cn(
+                    "rounded-[1.4rem] bg-card p-4 text-left card-lift",
+                    recommended && "ring-2 ring-gold bg-primary text-primary-foreground",
+                    !recommended && route.id === chosen?.id && "ring-2 ring-primary",
+                  )}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="font-heading text-lg font-extrabold">{title}</p>
+                    <p className="text-sm font-bold">
+                      {route.durationMin} min · {route.distanceKm} km
+                    </p>
+                  </div>
+                  <p className={cn("mt-1 text-sm", recommended ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                    {conditionLine(route)}
                   </p>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{route.summary}</p>
-                <p className="mt-1 text-xs">Road condition {route.conditionScore}/100</p>
-                {route.hazards.length > 0 && (
-                  <ul className="mt-1 text-xs">
-                    {route.hazards.slice(0, 4).map((h) => (
-                      <li key={h.issueId}>
-                        {HAZARD_META[h.hazard].icon} {h.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </button>
-            ))}
-            <Button size="lg" onClick={startNav} disabled={!chosen}>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={startNav}
+              disabled={!chosen}
+              className="h-12 rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
+            >
               Start navigation
-            </Button>
+            </button>
           </div>
         </div>
       )}
 
       {navigating && (
         <div className="absolute inset-x-0 bottom-20 z-[400] p-3 md:bottom-4">
-          <div className="mx-auto max-w-md space-y-2 rounded-2xl bg-background/95 p-3 shadow-xl">
-            <p className="text-lg font-semibold">
+          <div className="mx-auto max-w-md space-y-3 rounded-[1.6rem] bg-card/95 p-4 shadow-xl">
+            <p className="font-heading text-2xl font-extrabold">
               {chosen?.durationMin} min · {chosen?.distanceKm} km
             </p>
             <p className="text-sm text-muted-foreground">{chosen?.summary}</p>
             <div className="flex gap-2">
-              <Button className="flex-1" variant="secondary" onClick={() => setQuickOpen(true)}>
+              <button
+                type="button"
+                className="h-11 flex-1 rounded-2xl bg-secondary text-sm font-bold"
+                onClick={() => setQuickOpen(true)}
+              >
                 Report road problem
-              </Button>
-              <Button className="flex-1" variant="outline" onClick={endNav}>
+              </button>
+              <button type="button" className="h-11 flex-1 rounded-2xl bg-primary text-sm font-bold text-primary-foreground" onClick={endNav}>
                 End trip
-              </Button>
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {!navigating && (
-        <div className="pointer-events-none absolute top-1/3 right-3 z-[400] hidden max-w-[11rem] sm:block">
-          <div className="pointer-events-auto space-y-1 rounded-xl border bg-background/95 p-2 text-[11px] shadow">
-            <p className="font-semibold">Layers</p>
-            {(
-              [
-                ["problems", "🚧 Road Problems"],
-                ["flooding", "🌊 Flooding"],
-                ["potholes", "🕳️ Potholes"],
-                ["incidents", "🚦 Traffic / incidents"],
-                ["activeWork", "🔵 Active Road Work"],
-                ["completed", "🟢 Completed Road Work"],
-                ["density", "🔥 Problem Density"],
-                ["myLocation", "📍 My Location"],
-              ] as [keyof Layers, string][]
-            ).map(([id, label]) => (
-              <label key={id} className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={layers[id]}
-                  onChange={(e) => setLayers((l) => ({ ...l, [id]: e.target.checked }))}
-                />
-                {label}
-              </label>
-            ))}
+        <div className="pointer-events-none absolute top-[42%] right-3 z-[400]">
+          <div className="pointer-events-auto grid gap-2">
+            <button
+              type="button"
+              onClick={() => setLayersOpen((v) => !v)}
+              className="grid size-12 place-items-center rounded-2xl bg-card/95 shadow-lg"
+              aria-label="Layers"
+            >
+              <Layers className="size-5" />
+            </button>
+            {layersOpen && (
+              <div className="w-[12.5rem] space-y-1 rounded-[1.3rem] bg-card/95 p-3 text-[11px] shadow-xl">
+                <p className="mb-1 font-heading font-bold">Layers</p>
+                {(
+                  [
+                    ["problems", "🚧 Road Problems"],
+                    ["flooding", "🌊 Flooding"],
+                    ["potholes", "🕳️ Potholes"],
+                    ["incidents", "🚦 Traffic / incidents"],
+                    ["activeWork", "🔵 Active Road Work"],
+                    ["completed", "🟢 Completed Road Work"],
+                    ["density", "🔥 Problem Density"],
+                    ["myLocation", "📍 My Location"],
+                  ] as [keyof Layers, string][]
+                ).map(([id, label]) => (
+                  <label key={id} className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={layers[id]}
+                      onChange={(e) => setLayers((l) => ({ ...l, [id]: e.target.checked }))}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {quickOpen && (
         <div className="absolute inset-0 z-[600] flex items-end justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-background p-4">
-            <p className="font-semibold">Quick road report</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="w-full max-w-md rounded-[1.7rem] bg-card p-5">
+            <p className="font-heading text-lg font-extrabold">Quick road report</p>
+            <p className="text-xs leading-5 text-muted-foreground">
               Designed for a passenger, or when the vehicle is stopped. GPS, time, and area are attached automatically.
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {QUICK.map((q) => (
-                <Button key={q.id} variant="outline" onClick={() => quickReport(q.id)}>
+                <button
+                  key={q.id}
+                  type="button"
+                  className="h-12 rounded-2xl bg-secondary text-sm font-bold"
+                  onClick={() => quickReport(q.id)}
+                >
                   {HAZARD_META[q.id].icon} {q.label}
-                </Button>
+                </button>
               ))}
             </div>
-            <Button className="mt-3 w-full" variant="ghost" onClick={() => setQuickOpen(false)}>
+            <button type="button" className="mt-3 h-11 w-full rounded-2xl text-sm font-bold" onClick={() => setQuickOpen(false)}>
               Cancel
-            </Button>
+            </button>
           </div>
         </div>
       )}
 
       {feedbackOpen && (
         <div className="absolute inset-0 z-[600] flex items-end justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md space-y-3 rounded-2xl bg-background p-4">
-            <p className="font-semibold">How was the road?</p>
+          <div className="w-full max-w-md space-y-3 rounded-[1.7rem] bg-card p-5">
+            <p className="font-heading text-lg font-extrabold">How was the road?</p>
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
@@ -407,9 +457,10 @@ export function RoadAssistView() {
                   ["poor", "👎 Poor"],
                 ] as const
               ).map(([id, label]) => (
-                <Button
+                <button
                   key={id}
-                  variant="outline"
+                  type="button"
+                  className="h-12 rounded-2xl bg-secondary text-sm font-bold"
                   onClick={() => {
                     addRoadFeedback({
                       rating: id,
@@ -426,7 +477,7 @@ export function RoadAssistView() {
                   }}
                 >
                   {label}
-                </Button>
+                </button>
               ))}
             </div>
             <p className="text-xs">Optionally report a new problem:</p>
@@ -435,7 +486,7 @@ export function RoadAssistView() {
                 <button
                   key={q.id}
                   type="button"
-                  className={cn(buttonVariants({ size: "xs", variant: "secondary" }))}
+                  className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold"
                   onClick={() => {
                     quickReport(q.id);
                     setFeedbackOpen(false);
@@ -445,10 +496,16 @@ export function RoadAssistView() {
                 </button>
               ))}
             </div>
-            <Button variant="ghost" className="w-full" onClick={() => setFeedbackOpen(false)}>
+            <button type="button" className="h-11 w-full rounded-2xl text-sm font-bold" onClick={() => setFeedbackOpen(false)}>
               Skip
-            </Button>
+            </button>
           </div>
+        </div>
+      )}
+
+      {loading && (
+        <div className="absolute inset-x-0 top-1/2 z-[450] -translate-y-1/2 text-center">
+          <p className="inline-flex rounded-full bg-card px-4 py-2 text-sm font-bold shadow-lg">Finding safer routes…</p>
         </div>
       )}
 

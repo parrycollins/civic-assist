@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, X } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { CATEGORY_META, STATUS_META } from "@/lib/constants";
-import { formatDate, fromNow } from "@/lib/format";
+import { fromNow } from "@/lib/format";
 import { getAgency } from "@/data/agencies";
 import { resolutionDays } from "@/lib/performance";
 import type { Issue } from "@/lib/types";
@@ -16,11 +14,8 @@ export function StatusPill({ status, className }: { status: Issue["status"]; cla
   const meta = STATUS_META[status];
   return (
     <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold",
-        className,
-      )}
-      style={{ background: meta.fill, color: meta.color, borderColor: meta.color }}
+      className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold", className)}
+      style={{ background: meta.fill, color: meta.color }}
     >
       <span aria-hidden>{meta.glyph}</span>
       {meta.label}
@@ -40,9 +35,7 @@ export function IssueSheet({
   agencyActions?: React.ReactNode;
 }) {
   if (!open || !issue) return null;
-
   const agency = getAgency(issue.agencyId);
-  const resolved = issue.timeline.find((e) => e.status === "resolved");
   const days = resolutionDays(issue);
   const photo = issue.evidence.find((e) => e.stage === "before") ?? issue.evidence[0];
 
@@ -51,84 +44,54 @@ export function IssueSheet({
       <button
         type="button"
         aria-label="Close issue card"
-        className="pointer-events-auto absolute inset-0 bg-black/20"
+        className="pointer-events-auto absolute inset-0 bg-black/25"
         onClick={() => onOpenChange(false)}
       />
       <aside
         role="dialog"
         aria-modal="true"
         aria-labelledby="issue-card-title"
-        className="pointer-events-auto absolute inset-x-0 bottom-0 mx-auto max-h-[min(78dvh,40rem)] w-full max-w-lg overflow-y-auto rounded-t-2xl border bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] shadow-2xl md:bottom-6 md:mx-auto md:max-h-[min(80dvh,42rem)] md:rounded-2xl md:pb-6"
+        className="animate-civic-in pointer-events-auto absolute inset-x-0 bottom-0 mx-auto w-full max-w-lg overflow-hidden rounded-t-[1.8rem] bg-card pb-[calc(5.25rem+env(safe-area-inset-bottom))] shadow-[0_-20px_50px_-24px_rgb(16_32_24/0.45)] md:bottom-6 md:rounded-[1.8rem] md:pb-0"
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur">
+        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-border md:hidden" />
+        <div className="flex items-start justify-between gap-3 px-5 pt-4">
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">{CATEGORY_META[issue.category].label}</p>
-            <h2 id="issue-card-title" className="font-heading text-xl font-semibold">
-              {issue.title}
+            <h2 id="issue-card-title" className="font-heading text-2xl font-extrabold">
+              {CATEGORY_META[issue.category].icon} {issue.title}
             </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {issue.location.area} · {issue.location.publicLabel}
+            </p>
           </div>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="rounded-full border p-1.5 text-muted-foreground hover:bg-muted"
+            className="grid size-9 place-items-center rounded-full bg-secondary"
             aria-label="Close"
           >
             <X className="size-4" />
           </button>
         </div>
-        <div className="space-y-4 px-4 py-4">
-          <div className="overflow-hidden rounded-xl border">
-            <IssuePhoto
-              photoKey={photo?.photoKey ?? issue.photoKey}
-              imageDataUrl={photo?.imageDataUrl}
-              stage={photo?.stage}
-              className="h-40 w-full"
-              caption={`${CATEGORY_META[issue.category].label} · ${STATUS_META[issue.status].label}`}
-            />
+        <div className="space-y-4 px-5 py-4">
+          <IssuePhoto
+            photoKey={photo?.photoKey ?? issue.photoKey}
+            imageDataUrl={photo?.imageDataUrl}
+            stage={photo?.stage}
+            className="h-36 w-full rounded-2xl"
+          />
+          <p className="text-sm leading-6">{issue.description}</p>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <StatusPill status={issue.status} />
+            <span className="text-muted-foreground">{fromNow(issue.reportedAt)}</span>
           </div>
-          <p className="text-sm leading-6 text-foreground/90">{issue.description}</p>
-          <div className="grid gap-2 text-sm">
-            <p className="flex items-start gap-2">
-              <MapPin className="mt-0.5 size-4 shrink-0" />
-              <span>{issue.location.publicLabel}</span>
-            </p>
-            <p>Reported: {formatDate(issue.reportedAt)}</p>
-            <p>Agency: {agency?.name ?? "Unassigned"}</p>
-            <p className="flex flex-wrap items-center gap-2">
-              Status: <StatusPill status={issue.status} />
-            </p>
-            {issue.reporterCount > 1 && (
-              <p>
-                {issue.reporterCount} reports · {issue.affectedCount ?? issue.reporterCount} people affected
-              </p>
-            )}
-            <p className="text-muted-foreground">Last update {fromNow(issue.lastUpdateAt)}</p>
-            {resolved && <p>Resolved: {formatDate(resolved.timestamp)}</p>}
-          </div>
-          {STATUS_META[issue.status].layer === "completed" && (
-            <div className="rounded-xl border bg-emerald-50 p-3 text-sm dark:bg-emerald-950/40">
-              <p className="font-semibold text-emerald-900 dark:text-emerald-200">Community impact</p>
-              <ul className="mt-1 space-y-0.5 text-emerald-950 dark:text-emerald-100">
-                <li>Reported by: {issue.reporterCount} citizens</li>
-                <li>Resolved by: {agency?.name}</li>
-                {days !== null && (
-                  <li>
-                    Resolution time: {days} day{days === 1 ? "" : "s"}
-                  </li>
-                )}
-                <li>
-                  Citizen verification: {issue.verificationCount}/{issue.reporterCount}
-                </li>
-                <li>Status: {issue.status === "verified" ? "✓ Verified" : STATUS_META[issue.status].label}</li>
-              </ul>
-            </div>
+          <p className="text-sm font-semibold">{agency?.name}</p>
+          {STATUS_META[issue.status].layer === "completed" && days !== null && (
+            <p className="rounded-2xl bg-secondary px-3 py-2 text-sm">Resolved in {days} days · {issue.verificationCount}/{issue.reporterCount} verified</p>
           )}
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{issue.severity} severity</Badge>
-            {issue.isRoadRelated && <Badge variant="outline">Road condition</Badge>}
-            {issue.confidence >= 0.75 && <Badge variant="secondary">High confidence</Badge>}
-          </div>
-          <Link href={`/issues/${issue.id}`} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
+          <Link
+            href={`/issues/${issue.id}`}
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
+          >
             View Details
           </Link>
           {agencyActions}

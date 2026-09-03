@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useCivicStore } from "@/lib/store";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { StatusPill } from "@/components/map/IssueSheet";
+import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { formatDate } from "@/lib/format";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 export function MyReportsPage() {
   const user = useCivicStore((s) => s.user);
@@ -20,41 +19,39 @@ export function MyReportsPage() {
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-10 text-center">
-        <h1 className="font-heading text-xl font-semibold">My reports</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Sign in to track the complaints you submitted.</p>
-        <Link href="/login" className={cn(buttonVariants(), "mt-4")}>
-          Sign in
-        </Link>
+      <div className="mx-auto max-w-lg px-4 py-10">
+        <EmptyState
+          title="Sign in to track reports"
+          body="Your community is looking quiet until you follow the complaints you submitted."
+          actionHref="/login"
+          actionLabel="Sign in"
+        />
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
-      <h1 className="font-heading text-2xl font-semibold">My reports</h1>
+      <h1 className="font-heading text-3xl font-extrabold">My reports</h1>
       {list.length === 0 ? (
-        <div className="rounded-2xl border p-6 text-center">
-          <p className="font-medium">You have not submitted a report yet.</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Start with a photo and an approximate location. Your identity stays off the public map.
-          </p>
-          <Link href="/report" className={cn(buttonVariants(), "mt-4")}>
-            Report a problem
-          </Link>
-        </div>
+        <EmptyState
+          title="No reports yet"
+          body="Your community is looking quiet. Start with a photo and an approximate location."
+          actionHref="/report"
+          actionLabel="Report an Issue"
+        />
       ) : (
         <ul className="grid gap-3">
           {list.map((issue) => (
             <li key={issue.id}>
-              <Link href={`/issues/${issue.id}`} className="flex gap-3 rounded-2xl border p-2">
-                <IssuePhoto photoKey={issue.photoKey} className="h-20 w-24 rounded-xl" />
-                <div className="min-w-0">
-                  <p className="font-medium">{issue.title}</p>
+              <Link href={`/issues/${issue.id}`} className="card-lift flex gap-3 rounded-[1.5rem] bg-card p-2.5">
+                <IssuePhoto photoKey={issue.photoKey} className="h-20 w-24 rounded-2xl" />
+                <div className="min-w-0 py-1">
+                  <p className="font-semibold">{issue.title}</p>
                   <p className="text-xs text-muted-foreground">
                     {issue.id} · {formatDate(issue.reportedAt)}
                   </p>
-                  <StatusPill status={issue.status} className="mt-1" />
+                  <StatusPill status={issue.status} className="mt-2" />
                 </div>
               </Link>
             </li>

@@ -44,3 +44,44 @@ export function platformStats(issues: Issue[]) {
     road: issues.filter((i) => i.isRoadRelated).length,
   };
 }
+
+export function categoryBreakdown(issues: Issue[]) {
+  const counts = issues.reduce<Record<string, number>>((acc, issue) => {
+    acc[issue.category] = (acc[issue.category] ?? 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(counts)
+    .map(([id, count]) => ({ id, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+export function monthlyTrend(issues: Issue[], months = 6) {
+  const now = new Date("2026-09-03T12:00:00Z");
+  return Array.from({ length: months }, (_, i) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1 - i), 1));
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    const received = issues.filter((issue) => {
+      const d = parseISO(issue.reportedAt);
+      return d.getUTCFullYear() === date.getUTCFullYear() && d.getUTCMonth() === date.getUTCMonth();
+    }).length;
+    const resolved = issues.filter((issue) => {
+      const stamp = issue.timeline.find((e) => e.status === "resolved" || e.status === "verified")?.timestamp;
+      if (!stamp) return false;
+      const d = parseISO(stamp);
+      return d.getUTCFullYear() === date.getUTCFullYear() && d.getUTCMonth() === date.getUTCMonth();
+    }).length;
+    return {
+      key,
+      label: date.toLocaleString("en-GB", { month: "short" }),
+      received,
+      resolved,
+    };
+  });
+}
+
+export function performanceBand(rate: number) {
+  if (rate >= 85) return "Excellent";
+  if (rate >= 70) return "Strong";
+  if (rate >= 50) return "Developing";
+  return "Needs attention";
+}

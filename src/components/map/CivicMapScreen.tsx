@@ -13,8 +13,7 @@ import { AgencyPerformanceCard } from "@/components/map/AgencyPerformanceCard";
 import { CivicMapCanvas } from "@/components/map/CivicMapCanvas";
 import { IssueSheet } from "@/components/map/IssueSheet";
 import { MapToolbar } from "@/components/map/MapToolbar";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Navigation } from "lucide-react";
 
 export function CivicMapScreen({
   mode = "citizen",
@@ -124,12 +123,13 @@ export function CivicMapScreen({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/road-assist"
-              className={cn(buttonVariants({ size: "sm", variant: "secondary" }), "shadow-sm")}
+              className="inline-flex items-center gap-1.5 rounded-full bg-card/95 px-3 py-1.5 text-xs font-bold shadow-sm"
             >
+              <Navigation className="size-3.5" />
               Road Assist
             </Link>
             {mode === "agency" && (
-              <span className="rounded-full bg-background/90 px-2 py-1 text-[11px] shadow-sm">
+              <span className="rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-semibold shadow-sm">
                 Agency map — assigned complaints only
               </span>
             )}
@@ -143,9 +143,8 @@ export function CivicMapScreen({
           </div>
         </div>
       )}
-      <div className="pointer-events-none absolute bottom-20 left-3 z-[400] max-w-[16rem] rounded-xl border bg-background/90 p-2 text-[11px] leading-4 text-muted-foreground shadow sm:bottom-6">
-        Markers use colour and shape: circle new, diamond review, square assigned, hexagon work, badge verified,
-        triangle disputed.
+      <div className="pointer-events-none absolute bottom-20 left-3 z-[400] max-w-[15rem] rounded-[1.2rem] bg-card/90 p-3 text-[11px] leading-4 text-muted-foreground shadow-lg sm:bottom-6">
+        Markers use a category icon and a status pill. Colour is never the only signal.
       </div>
       <IssueSheet issue={selected} open={Boolean(selected)} onOpenChange={(o) => !o && setSelectedId(null)} />
     </div>
