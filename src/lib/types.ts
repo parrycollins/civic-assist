@@ -77,6 +77,9 @@ export interface Evidence {
   stage: EvidenceStage;
   photoKey: string;
   imageDataUrl?: string;
+  kind?: "photo" | "video";
+  videoDataUrl?: string;
+  fileType?: string;
   timestamp: string;
   uploadedBy: string;
   uploadedByRole: UserRole;
@@ -109,6 +112,8 @@ export interface Issue {
   dueAt?: string;
   verificationCount: number;
   createdById?: string;
+  reporterVisibility?: "named" | "anonymous";
+  reporterDisplayName?: string;
   /** Offset applied so public pins are not exact private GPS. */
   privacyOffset: GeoPoint;
 }
@@ -162,6 +167,8 @@ export interface User {
   role: UserRole;
   agencyId?: string;
   area?: string;
+  recognition?: "named" | "anonymous";
+  displayName?: string;
 }
 
 export interface AppNotification {

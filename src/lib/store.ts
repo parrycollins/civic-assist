@@ -43,9 +43,10 @@ export interface CivicState {
   addEvidence: (
     id: string,
     stage: EvidenceStage,
-    photo: { photoKey?: string; imageDataUrl?: string },
+    photo: { photoKey?: string; imageDataUrl?: string; videoDataUrl?: string; fileType?: string },
     description?: string,
   ) => void;
+  setRecognition: (recognition: "named" | "anonymous", displayName?: string) => void;
   verifyIssue: (id: string) => void;
   disputeIssue: (id: string, note?: string) => void;
   confirmIssue: (id: string, exists: boolean) => void;
@@ -150,6 +151,7 @@ export const useCivicStore = create<CivicState>()(
           email,
           role: "citizen",
           area,
+          recognition: "anonymous",
         };
         set((s) => ({
           user,
@@ -214,6 +216,8 @@ export const useCivicStore = create<CivicState>()(
           confidence: 0.35,
           verificationCount: 0,
           createdById: get().user?.id,
+          reporterVisibility: get().user?.recognition === "named" ? "named" : "anonymous",
+          reporterDisplayName: get().user?.displayName || get().user?.name,
           privacyOffset: { lat: 0, lng: 0 },
         };
         set((s) => ({
@@ -265,7 +269,13 @@ export const useCivicStore = create<CivicState>()(
             };
           }),
           notifications: [
-            notify("Status updated", `${labelMap[status]}${note ? ` — ${note}` : ""}`, id),
+            notify(
+              status === "resolved" ? "Awaiting citizen verification" : "Status updated",
+              status === "resolved"
+                ? "The agency marked this work complete. Citizens can confirm or dispute it."
+                : `${labelMap[status]}${note ? ` — ${note}` : ""}`,
+              id,
+            ),
             ...s.notifications,
           ],
         }));
@@ -279,6 +289,9 @@ export const useCivicStore = create<CivicState>()(
           stage,
           photoKey: photo.photoKey ?? `${stage}-upload`,
           imageDataUrl: photo.imageDataUrl,
+          kind: photo.videoDataUrl ? "video" : "photo",
+          videoDataUrl: photo.videoDataUrl,
+          fileType: photo.fileType,
           timestamp: now,
           uploadedBy: user?.name ?? "Agency officer",
           uploadedByRole: user?.role ?? "agency",
@@ -292,6 +305,24 @@ export const useCivicStore = create<CivicState>()(
                   ...issue,
                   lastUpdateAt: now,
                   evidence: [...issue.evidence, record],
+                }
+              : issue,
+          ),
+        }));
+      },
+      setRecognition: (recognition, displayName) => {
+        const user = get().user;
+        if (!user) return;
+        const next = { ...user, recognition, displayName: displayName?.trim() || user.displayName };
+        set((s) => ({
+          user: next,
+          accounts: s.accounts.map((a) => (a.user.id === user.id ? { ...a, user: next } : a)),
+          issues: s.issues.map((issue) =>
+            issue.createdById === user.id
+              ? {
+                  ...issue,
+                  reporterVisibility: recognition,
+                  reporterDisplayName: next.displayName || next.name,
                 }
               : issue,
           ),

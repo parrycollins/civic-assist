@@ -89,10 +89,10 @@ export function IssueSheet({
             <p className="rounded-2xl bg-secondary px-3 py-2 text-sm">Resolved in {days} days · {issue.verificationCount}/{issue.reporterCount} verified</p>
           )}
           <Link
-            href={`/issues/${issue.id}`}
+            href={STATUS_META[issue.status].layer === "completed" ? `/completed/${issue.id}` : `/issues/${issue.id}`}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
           >
-            View Details
+            {STATUS_META[issue.status].layer === "completed" ? "View Work" : "View Details"}
           </Link>
           {agencyActions}
         </div>

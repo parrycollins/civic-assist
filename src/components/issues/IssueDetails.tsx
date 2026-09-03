@@ -10,7 +10,9 @@ import { EvidenceGallery } from "@/components/issues/EvidenceGallery";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { IssueTimeline } from "@/components/issues/IssueTimeline";
 import { StatusTrack } from "@/components/issues/StatusTrack";
+import { Journey } from "@/components/completed/Journey";
 import { StatusPill } from "@/components/map/IssueSheet";
+import { publicReporterLabel, verificationLabel } from "@/lib/completed";
 import { ErrorState } from "@/components/ui-kit/ErrorState";
 import { CATEGORY_META, STATUS_META } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
@@ -92,6 +94,8 @@ export function IssueDetails() {
         <Meta label="Location" value={issue.location.publicLabel} />
         <Meta label="Reported" value={formatDate(issue.reportedAt)} />
         <Meta label="Responsible agency" value={agency?.name ?? "Unassigned"} />
+        <Meta label="Reported by" value={publicReporterLabel(issue, user)} />
+        {completed && <Meta label="Verification" value={verificationLabel(issue)} />}
         <Meta label="Reports / people affected" value={`${issue.reporterCount} / ${issue.affectedCount ?? issue.reporterCount}`} />
         <Meta
           label="Confidence"
@@ -99,6 +103,20 @@ export function IssueDetails() {
         />
         {isOverdue(issue) && <Meta label="Due date" value="Overdue against the agency due date" />}
       </div>
+
+      {issue.status === "resolved" && (
+        <p className="rounded-[1.3rem] bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
+          Awaiting citizen verification. Agency completion is not the same as a citizen-verified result.
+        </p>
+      )}
+
+      {completed && <Journey issue={issue} />}
+
+      {completed && (
+        <Link href={`/completed/${issue.id}`} className="inline-flex h-11 items-center rounded-2xl bg-primary px-4 text-sm font-bold text-primary-foreground">
+          Open completed-work record
+        </Link>
+      )}
 
       {completed && (
         <section className="rounded-[1.6rem] bg-emerald-50 p-5 dark:bg-emerald-950/30">
@@ -247,8 +265,32 @@ export function IssueDetails() {
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = () => {
-                  addEvidence(issue.id, stage, { imageDataUrl: String(reader.result) }, note);
-                  toast.success("Evidence added. Previous photos remain in the history.");
+                  addEvidence(issue.id, stage, { imageDataUrl: String(reader.result), fileType: file.type }, note);
+                  toast.success("Photo added. The original citizen evidence stays on the record.");
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+            <p className="text-sm font-semibold">Upload a short completion video</p>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 6_000_000) {
+                  toast.error("Keep videos under 6 MB for this browser archive.");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  addEvidence(
+                    issue.id,
+                    stage,
+                    { videoDataUrl: String(reader.result), fileType: file.type, photoKey: `${stage}-video` },
+                    note || "Agency completion video",
+                  );
+                  toast.success("Video appended. Earlier photos and videos were not replaced.");
                 };
                 reader.readAsDataURL(file);
               }}

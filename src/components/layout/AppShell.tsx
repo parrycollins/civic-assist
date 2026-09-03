@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleUser, Home, Map, Navigation, Plus } from "lucide-react";
+import { CircleUser, Home, Map, Navigation, Plus, Trophy } from "lucide-react";
 import { useCivicStore } from "@/lib/store";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeToggle } from "@/components/ui-kit/ThemeToggle";
@@ -20,6 +20,7 @@ const agencyItems = [
   { href: "/agency", label: "Home", icon: Home },
   { href: "/agency/map", label: "Map", icon: Map },
   { href: "/agency/roads", label: "Roads", icon: Navigation },
+  { href: "/completed", label: "Completed", icon: Trophy },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 
@@ -42,7 +43,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
         </Link>
         <nav className="mt-8 grid gap-1.5">
-          {(user?.role === "agency" ? agencyItems : [...citizenItems, { href: "/my-reports", label: "My Reports", icon: CircleUser }]).map(
+          {(user?.role === "agency"
+            ? agencyItems
+            : [
+                ...citizenItems,
+                { href: "/completed", label: "Completed", icon: Trophy },
+                { href: "/my-reports", label: "My Reports", icon: CircleUser },
+              ]
+          ).map(
             (item) => {
               const isActive =
                 item.href === "/" || item.href === "/agency"

@@ -10,6 +10,8 @@ The map is a visual history of community problems and public-service work, not o
 
 The interface uses a Ghana-inspired CivicGH visual system: deep green, spare gold, Plus Jakarta Sans, and a shared `src/theme` token set. Dark mode is available from Profile.
 
+The **Completed Work** archive (`/completed`) is a public history of agency-completed and citizen-verified records, with before / during / after evidence, optional agency videos, recognition settings, and civic-impact totals counted from the live dataset — not invented figures.
+
 ## Run locally
 
 ```bash

@@ -2,21 +2,31 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Map, Navigation, Plus, ShieldCheck } from "lucide-react";
+import { Map, Navigation, Plus } from "lucide-react";
 import { useCivicStore } from "@/lib/store";
 import { categoryBreakdown, monthlyTrend, platformStats } from "@/lib/performance";
 import { CATEGORY_META, STATUS_META } from "@/lib/constants";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { StatusPill } from "@/components/map/IssueSheet";
-import { getAgency } from "@/data/agencies";
 import { greeting } from "@/theme/tokens";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatCard } from "@/components/ui-kit/StatCard";
+import { CompletedCard } from "@/components/completed/CompletedCard";
+import { MyCivicImpact } from "@/components/completed/MyCivicImpact";
+import { civicImpact, completedWorks } from "@/lib/completed";
+import { agencyPerformance } from "@/lib/performance";
+import { AGENCIES } from "@/data/agencies";
 
 export function HomePage() {
   const issues = useCivicStore((s) => s.issues);
   const user = useCivicStore((s) => s.user);
+  const myIssueIds = useCivicStore((s) => s.myIssueIds);
   const stats = platformStats(issues);
+  const impact = civicImpact(issues);
+  const recentDone = completedWorks(issues).slice(0, 4);
+  const topAgency = [...AGENCIES]
+    .map((a) => ({ agency: a, stats: agencyPerformance(issues, a.id) }))
+    .sort((a, b) => b.stats.resolved - a.stats.resolved)[0];
   const cats = categoryBreakdown(issues);
   const months = monthlyTrend(issues);
   const maxMonth = Math.max(1, ...months.map((m) => m.resolved));
@@ -27,7 +37,6 @@ export function HomePage() {
   const nearbyOpen = nearby.filter((i) => STATUS_META[i.status].layer !== "completed");
   const nearbyProgress = nearby.filter((i) => STATUS_META[i.status].layer === "progress");
   const nearbyDone = nearby.filter((i) => STATUS_META[i.status].layer === "completed");
-  const completed = issues.filter((i) => STATUS_META[i.status].layer === "completed").slice(0, 3);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-5 md:py-8">
@@ -77,13 +86,11 @@ export function HomePage() {
             <p className="text-sm text-muted-foreground">Safer routes using live civic road data.</p>
           </div>
         </Link>
-        <Link href="/my-reports" className="card-lift flex items-center gap-4 rounded-[1.6rem] bg-card p-4">
-          <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-xl">
-            <ShieldCheck className="size-5 text-primary" />
-          </span>
+        <Link href="/completed" className="card-lift flex items-center gap-4 rounded-[1.6rem] bg-card p-4">
+          <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-xl">🏆</span>
           <div>
-            <p className="font-heading font-bold">Track &amp; verify</p>
-            <p className="text-sm text-muted-foreground">Follow work from report to citizen check.</p>
+            <p className="font-heading font-bold">Completed Work</p>
+            <p className="text-sm text-muted-foreground">See what agencies have actually finished.</p>
           </div>
         </Link>
       </section>
@@ -119,18 +126,56 @@ export function HomePage() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-heading text-xl font-bold">Completed work</h2>
-        <div className="grid gap-3">
-          {completed.map((issue) => (
-            <Link key={issue.id} href={`/issues/${issue.id}`} className="card-lift rounded-[1.5rem] bg-card p-4">
-              <p className="font-semibold">✓ {issue.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {getAgency(issue.agencyId)?.name} · {issue.location.area}
-              </p>
-            </Link>
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="font-heading text-xl font-bold">Recently Completed</h2>
+          <Link href="/completed" className="text-sm font-semibold text-primary">
+            See all completed work
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {recentDone.map((issue) => (
+            <CompletedCard key={issue.id} issue={issue} viewer={user} />
           ))}
         </div>
       </section>
+
+      {topAgency && (
+        <Link href={`/agencies/${topAgency.agency.id}`} className="card-lift block rounded-[1.6rem] bg-card p-5">
+          <p className="text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">Agency performance</p>
+          <h2 className="mt-1 font-heading text-xl font-bold">{topAgency.agency.name}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {topAgency.stats.resolved} completed · {topAgency.stats.citizenVerified} citizen-verified ·{" "}
+            {topAgency.stats.resolutionRate.toFixed(0)}% resolution rate
+          </p>
+        </Link>
+      )}
+
+      <section className="card-lift rounded-[1.6rem] bg-primary p-5 text-primary-foreground">
+        <h2 className="font-heading text-xl font-bold">Civic Impact</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <p className="font-heading text-3xl font-extrabold">{impact.reported}</p>
+            <p className="text-xs text-primary-foreground/70">Problems reported</p>
+          </div>
+          <div>
+            <p className="font-heading text-3xl font-extrabold">{impact.resolved}</p>
+            <p className="text-xs text-primary-foreground/70">Resolved</p>
+          </div>
+          <div>
+            <p className="font-heading text-3xl font-extrabold">{impact.verified}</p>
+            <p className="text-xs text-primary-foreground/70">Citizen-verified</p>
+          </div>
+          <div>
+            <p className="font-heading text-3xl font-extrabold">{impact.agencies}</p>
+            <p className="text-xs text-primary-foreground/70">Agencies in the records</p>
+          </div>
+        </div>
+        <Link href="/impact" className="mt-4 inline-flex text-sm font-bold text-gold">
+          Full impact report
+        </Link>
+      </section>
+
+      <MyCivicImpact issues={issues} user={user} myIssueIds={myIssueIds} />
 
       <section className="card-lift rounded-[1.8rem] bg-card p-5">
         <p className="text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">National civic snapshot</p>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCivicStore } from "@/lib/store";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { ThemeToggle } from "@/components/ui-kit/ThemeToggle";
+import { MyCivicImpact } from "@/components/completed/MyCivicImpact";
 import { fromNow } from "@/lib/format";
 
 export function ProfilePage() {
@@ -14,6 +15,9 @@ export function ProfilePage() {
   const markNotificationsRead = useCivicStore((s) => s.markNotificationsRead);
   const logout = useCivicStore((s) => s.logout);
   const resetDemo = useCivicStore((s) => s.resetDemo);
+  const issues = useCivicStore((s) => s.issues);
+  const myIssueIds = useCivicStore((s) => s.myIssueIds);
+  const setRecognition = useCivicStore((s) => s.setRecognition);
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-6">
@@ -30,6 +34,28 @@ export function ProfilePage() {
           </p>
           {user.agencyId && <p className="mt-2 text-sm">Agency officer · {user.agencyId.toUpperCase()}</p>}
           {user.area && <p className="text-sm text-muted-foreground">Area: {user.area}</p>}
+          {user.role === "citizen" && (
+            <div className="mt-4 grid gap-2">
+              <p className="text-sm font-semibold">Recognition on completed work</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={`h-10 rounded-2xl px-3 text-xs font-bold ${user.recognition === "named" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+                  onClick={() => setRecognition("named", user.displayName || user.name)}
+                >
+                  Show my name
+                </button>
+                <button
+                  type="button"
+                  className={`h-10 rounded-2xl px-3 text-xs font-bold ${user.recognition !== "named" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+                  onClick={() => setRecognition("anonymous")}
+                >
+                  Show anonymously
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">Email and phone are never shown on public pages.</p>
+            </div>
+          )}
         </div>
       ) : (
         <EmptyState
@@ -39,6 +65,8 @@ export function ProfilePage() {
           actionLabel="Sign in"
         />
       )}
+
+      <MyCivicImpact issues={issues} user={user} myIssueIds={myIssueIds} />
 
       <section>
         <div className="mb-3 flex items-center justify-between">

@@ -18,14 +18,17 @@ import { Navigation } from "lucide-react";
 export function CivicMapScreen({
   mode = "citizen",
   agencyId,
+  layerMode,
 }: {
   mode?: "citizen" | "agency";
   agencyId?: string;
+  layerMode?: MapFilters["layerMode"];
 }) {
   const issues = useCivicStore((s) => s.issues);
   const [filters, setFilters] = useState<MapFilters>({
     ...DEFAULT_FILTERS,
     agencyId: agencyId ?? "all",
+    layerMode: layerMode ?? DEFAULT_FILTERS.layerMode,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<GeoPoint | null>(null);

@@ -39,6 +39,7 @@ export function ReportForm({
   const router = useRouter();
   const user = useCivicStore((s) => s.user);
   const addIssue = useCivicStore((s) => s.addIssue);
+  const setRecognition = useCivicStore((s) => s.setRecognition);
   const [step, setStep] = useState(0);
   const [choiceId, setChoiceId] = useState(() => {
     if (preset?.roadHazard) {
@@ -250,6 +251,27 @@ export function ReportForm({
           <p className="text-sm leading-6 text-muted-foreground">
             Keep it public-safe. Do not include your address or phone number.
           </p>
+          {user?.role === "citizen" && (
+            <div className="rounded-[1.3rem] bg-card p-4">
+              <p className="text-sm font-semibold">If this is fixed, how should CivicGH credit you?</p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  className={`h-10 rounded-2xl px-3 text-xs font-bold ${user.recognition === "named" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+                  onClick={() => setRecognition("named", user.name)}
+                >
+                  Show my name
+                </button>
+                <button
+                  type="button"
+                  className={`h-10 rounded-2xl px-3 text-xs font-bold ${user.recognition !== "named" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+                  onClick={() => setRecognition("anonymous")}
+                >
+                  Show anonymously
+                </button>
+              </div>
+            </div>
+          )}
           <label className="grid gap-1.5 text-sm font-semibold">
             Title
             <input
