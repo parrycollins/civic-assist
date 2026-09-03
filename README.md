@@ -41,3 +41,9 @@ Open [http://localhost:43217](http://localhost:43217).
 Routing uses [OSRM](https://project-osrm.org/) behind a small provider interface so the mapping backend can be swapped later. Geocoding prefers the built-in Accra place index, then Nominatim.
 
 Data is stored in the browser for this MVP (Zustand + localStorage). Reset it from **Profile → Reset demo data**.
+
+## Android Studio
+
+The native citizen app lives in **`android/`**. Open that folder in Android Studio (File → Open), sync SDK 35, and run on an API 26+ device or emulator.
+
+See [ANDROID.md](ANDROID.md) for the project layout, demo logins, and what is (and is not) in this first native slice. The web app above remains the full reference for Road Assist and agency tools.
