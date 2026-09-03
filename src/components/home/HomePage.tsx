@@ -44,20 +44,22 @@ export function HomePage() {
           Report problems, track progress and explore what is happening around you.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <a
+          <Link
             href="/report"
+            prefetch={false}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gold px-5 text-sm font-bold text-gold-foreground"
           >
             <Plus className="size-4" />
             Report an Issue
-          </a>
-          <a
+          </Link>
+          <Link
             href="/map"
+            prefetch={false}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/12 px-5 text-sm font-bold text-white ring-1 ring-white/25"
           >
             <Map className="size-4" />
             Explore Civic Map
-          </a>
+          </Link>
         </div>
       </section>
 

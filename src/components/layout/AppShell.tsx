@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
         )}
-        <main className={cn("flex-1", fullBleed ? "min-h-0 overflow-hidden" : "overflow-y-auto pb-28 md:pb-8")}>
+        <main className={cn("flex-1", fullBleed ? "min-h-0 overflow-hidden" : "overflow-y-auto pb-36 md:pb-8")}>
           {children}
         </main>
         <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 items-end rounded-[1.7rem] border border-white/50 bg-card/90 px-1 py-2 shadow-[0_16px_40px_-20px_rgb(16_32_24/0.45)] backdrop-blur-xl md:hidden">
@@ -116,27 +116,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               pathname === href || (href !== "/" && href !== "/agency" && pathname.startsWith(href));
             const Icon = item.icon;
             if (item.emphasize) {
+              const fabClass =
+                "-mt-7 mx-auto grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_12px_24px_-8px_rgb(13_79_60/0.8)]";
+              if (isActive) {
+                return (
+                  <span key={item.href} aria-current="page" aria-label="Report an issue" className={fabClass}>
+                    <Icon className="size-6" />
+                  </span>
+                );
+              }
               return (
-                <Link
-                  key={item.href}
-                  href={href}
-                  aria-label="Report an issue"
-                  className="-mt-7 mx-auto grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_12px_24px_-8px_rgb(13_79_60/0.8)]"
-                >
+                <Link key={item.href} href={href} prefetch={false} aria-label="Report an issue" className={fabClass}>
                   <Icon className="size-6" />
                 </Link>
               );
             }
+            const tabClass = cn(
+              "flex flex-col items-center gap-1 py-1 text-[10px] font-semibold",
+              isActive ? "text-primary" : "text-muted-foreground",
+            );
+            if (isActive) {
+              return (
+                <span key={item.href} aria-current="page" className={tabClass}>
+                  <Icon className="size-5 scale-110" />
+                  {item.label}
+                </span>
+              );
+            }
             return (
-              <Link
-                key={item.href}
-                href={href}
-                className={cn(
-                  "flex flex-col items-center gap-1 py-1 text-[10px] font-semibold",
-                  isActive ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <Icon className={cn("size-5 transition-transform", isActive && "scale-110")} />
+              <Link key={item.href} href={href} prefetch={false} className={tabClass}>
+                <Icon className="size-5" />
                 {item.label}
               </Link>
             );

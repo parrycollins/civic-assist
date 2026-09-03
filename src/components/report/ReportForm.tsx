@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Check, ChevronLeft, MapPin } from "lucide-react";
 import { toast } from "sonner";
@@ -52,6 +52,36 @@ export function ReportForm({
   const [locLabel, setLocLabel] = useState("Accra (approximate)");
   const [done, setDone] = useState(false);
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("civicgh-report-draft");
+      if (!raw) return;
+      const draft = JSON.parse(raw) as {
+        step?: number;
+        choiceId?: string;
+        title?: string;
+        description?: string;
+        severity?: Severity;
+        agencyId?: string;
+      };
+      if (typeof draft.step === "number") setStep(Math.min(4, Math.max(0, draft.step)));
+      if (draft.choiceId) setChoiceId(draft.choiceId);
+      if (typeof draft.title === "string") setTitle(draft.title);
+      if (typeof draft.description === "string") setDescription(draft.description);
+      if (draft.severity) setSeverity(draft.severity);
+      if (draft.agencyId) setAgencyId(draft.agencyId);
+    } catch {
+      /* ignore broken drafts */
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      "civicgh-report-draft",
+      JSON.stringify({ step, choiceId, title, description, severity, agencyId }),
+    );
+  }, [step, choiceId, title, description, severity, agencyId]);
+
   const choice = CHOICES.find((c) => c.id === choiceId) ?? CHOICES[0];
   const road = useMemo(
     () => ["roads", "flooding"].includes(choice.category) || Boolean(preset?.roadHazard || choice.hazard),
@@ -98,6 +128,7 @@ export function ReportForm({
       agencyId,
     });
     setDone(true);
+    sessionStorage.removeItem("civicgh-report-draft");
     toast.success("Report submitted. The map will update immediately.");
     window.setTimeout(() => router.push(`/issues/${issue.id}`), 1400);
   }
@@ -119,11 +150,11 @@ export function ReportForm({
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-5 md:py-8">
+    <div className="mx-auto max-w-lg px-4 py-5 pb-8 md:py-8">
       <div className="mb-5 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => (step === 0 ? router.back() : setStep((s) => s - 1))}
+          onClick={() => (step === 0 ? router.push("/") : setStep((s) => s - 1))}
           className="grid size-10 place-items-center rounded-2xl bg-card shadow-sm"
           aria-label="Back"
         >
@@ -315,7 +346,7 @@ export function ReportForm({
           <button
             type="button"
             onClick={submit}
-            className="pressable mt-6 inline-flex h-13 h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
+            className="pressable relative z-10 mt-6 mb-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
           >
             Submit report
           </button>
@@ -330,7 +361,7 @@ function Next({ onClick, label = "Continue" }: { onClick: () => void; label?: st
     <button
       type="button"
       onClick={onClick}
-      className="pressable mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
+      className="pressable relative z-10 mt-6 mb-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
     >
       {label}
     </button>
