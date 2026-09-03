@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { toast } from "sonner";
 import { findPlaces } from "@/data/areas";
@@ -11,22 +10,11 @@ import { approximateLocation } from "@/lib/geo";
 import { useCivicStore } from "@/lib/store";
 import type { GeoPoint, Issue, MapFilters } from "@/lib/types";
 import { AgencyPerformanceCard } from "@/components/map/AgencyPerformanceCard";
+import { CivicMapCanvas } from "@/components/map/CivicMapCanvas";
 import { IssueSheet } from "@/components/map/IssueSheet";
 import { MapToolbar } from "@/components/map/MapToolbar";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const CivicMapCanvas = dynamic(
-  () => import("@/components/map/CivicMapCanvas").then((m) => m.CivicMapCanvas),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
-        Loading civic map…
-      </div>
-    ),
-  },
-);
 
 export function CivicMapScreen({
   mode = "citizen",

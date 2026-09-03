@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { toast } from "sonner";
 import { findPlaces } from "@/data/areas";
@@ -11,15 +10,11 @@ import { planTrip } from "@/lib/routing";
 import { pickRecommendedRoute } from "@/lib/scoring";
 import { useCivicStore } from "@/lib/store";
 import type { GeoPoint, RoadHazard, RoutePreference, ScoredRoute } from "@/lib/types";
+import { CivicMapCanvas } from "@/components/map/CivicMapCanvas";
 import { IssueSheet } from "@/components/map/IssueSheet";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-const CivicMapCanvas = dynamic(
-  () => import("@/components/map/CivicMapCanvas").then((m) => m.CivicMapCanvas),
-  { ssr: false, loading: () => <div className="flex h-full items-center justify-center">Loading map…</div> },
-);
 
 const QUICK: { id: RoadHazard; label: string }[] = [
   { id: "pothole", label: "Pothole" },

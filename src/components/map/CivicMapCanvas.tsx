@@ -1,129 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Circle, MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import "leaflet.markercluster/dist/MarkerCluster.css";
-import { clusterIcon, issueDivIcon } from "@/components/map/markers";
+import { useEffect, useRef, useState } from "react";
 import { ACCRA_CENTER, DEFAULT_ZOOM } from "@/lib/constants";
 import type { GeoPoint, Issue, ScoredRoute } from "@/lib/types";
-
-if (typeof window !== "undefined") {
-  (window as unknown as { L: typeof L }).L = L;
-}
-
-type ClusterFactory = (options?: Record<string, unknown>) => L.Layer & {
-  addLayer: (layer: L.Layer) => void;
-};
-type HeatFactory = (
-  latlngs: Array<[number, number, number?]>,
-  options?: Record<string, unknown>,
-) => L.Layer;
-
-function FlyTo({ target, zoom }: { target?: GeoPoint | null; zoom?: number }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!target) return;
-    map.flyTo([target.lat, target.lng], zoom ?? Math.max(map.getZoom(), 14), { duration: 1.1 });
-  }, [target, zoom, map]);
-  return null;
-}
-
-function IssueLayers({
-  issues,
-  viewMode,
-  onSelect,
-}: {
-  issues: Issue[];
-  viewMode: "markers" | "density";
-  onSelect: (id: string) => void;
-}) {
-  const map = useMap();
-  const [plugins, setPlugins] = useState<{
-    cluster?: ClusterFactory;
-    heat?: HeatFactory;
-  }>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    (window as unknown as { L: typeof L }).L = L;
-    Promise.allSettled([import("leaflet.markercluster"), import("leaflet.heat")]).then(() => {
-      if (cancelled) return;
-      const leaflet = L as typeof L & {
-        markerClusterGroup?: ClusterFactory;
-        heatLayer?: HeatFactory;
-      };
-      setPlugins({
-        cluster: leaflet.markerClusterGroup,
-        heat: leaflet.heatLayer,
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (viewMode === "density" && plugins.heat) {
-      const heat = plugins.heat(
-        issues.map((i) => [i.location.lat, i.location.lng, i.status === "verified" ? 0.4 : 0.9]),
-        {
-          radius: 28,
-          blur: 22,
-          maxZoom: 17,
-          gradient: { 0.2: "#86efac", 0.45: "#facc15", 0.7: "#f97316", 1: "#b91c1c" },
-        },
-      );
-      map.addLayer(heat);
-      return () => {
-        map.removeLayer(heat);
-      };
-    }
-
-    if (viewMode === "markers" && plugins.cluster) {
-      const cluster = plugins.cluster({
-        maxClusterRadius: 56,
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        iconCreateFunction: (c: { getChildCount: () => number }) => clusterIcon(c.getChildCount()),
-      });
-      for (const issue of issues) {
-        const marker = L.marker([issue.location.lat, issue.location.lng], {
-          icon: issueDivIcon(issue.status, issue.title),
-          title: `${issue.title} (${issue.status})`,
-          alt: `${issue.title}, ${issue.status.replace(/_/g, " ")}`,
-        });
-        marker.on("click", (event) => {
-          L.DomEvent.stopPropagation(event);
-          onSelect(issue.id);
-        });
-        cluster.addLayer(marker);
-      }
-      map.addLayer(cluster);
-      return () => {
-        map.removeLayer(cluster);
-      };
-    }
-  }, [issues, viewMode, map, onSelect, plugins]);
-
-  if (viewMode === "markers" && !plugins.cluster) {
-    return (
-      <>
-        {issues.map((issue) => (
-          <Marker
-            key={issue.id}
-            position={[issue.location.lat, issue.location.lng]}
-            icon={issueDivIcon(issue.status, issue.title)}
-            eventHandlers={{ click: () => onSelect(issue.id) }}
-          />
-        ))}
-      </>
-    );
-  }
-
-  return null;
-}
+import type { Map as LeafletMap, LayerGroup } from "leaflet";
+import type LType from "leaflet";
 
 export function CivicMapCanvas({
   issues,
@@ -146,49 +27,193 @@ export function CivicMapCanvas({
   selectedRouteId?: string;
   navigating?: boolean;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const issuesLayerRef = useRef<LayerGroup | null>(null);
+  const extrasLayerRef = useRef<LayerGroup | null>(null);
+  const leafletRef = useRef<typeof LType | null>(null);
+  const onSelectRef = useRef(onSelect);
+  const issuesRef = useRef(issues);
+  const viewModeRef = useRef(viewMode);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+
+  onSelectRef.current = onSelect;
+  issuesRef.current = issues;
+  viewModeRef.current = viewMode;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    let cancelled = false;
+    let observer: ResizeObserver | undefined;
+    let timer = 0;
+
+    void (async () => {
+      try {
+        const leafletMod = await import("leaflet");
+        const icons = await import("@/components/map/markers");
+        const L = leafletMod.default;
+        if (cancelled || !containerRef.current) return;
+        leafletRef.current = L;
+
+        const map = L.map(containerRef.current, {
+          zoomControl: true,
+          attributionControl: true,
+          scrollWheelZoom: true,
+        }).setView([ACCRA_CENTER.lat, ACCRA_CENTER.lng], DEFAULT_ZOOM);
+
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
+        }).addTo(map);
+
+        const issuesLayer = L.layerGroup().addTo(map);
+        const extrasLayer = L.layerGroup().addTo(map);
+        mapRef.current = map;
+        issuesLayerRef.current = issuesLayer;
+        extrasLayerRef.current = extrasLayer;
+
+        const drawIssues = () => {
+          issuesLayer.clearLayers();
+          const current = issuesRef.current;
+          const mode = viewModeRef.current;
+          const zoom = map.getZoom();
+
+          if (mode === "density") {
+            for (const issue of current) {
+              L.circleMarker([issue.location.lat, issue.location.lng], {
+                radius: 16,
+                color: "#b91c1c",
+                fillColor: "#f97316",
+                fillOpacity: 0.28,
+                weight: 0,
+              }).addTo(issuesLayer);
+            }
+            return;
+          }
+
+          const showIndividuals = zoom >= 14;
+          const cell = 0.09 / 2 ** Math.max(0, zoom - 10);
+          const buckets = new Map<string, Issue[]>();
+          for (const issue of current) {
+            const key = showIndividuals
+              ? issue.id
+              : `${Math.round(issue.location.lat / cell)}:${Math.round(issue.location.lng / cell)}`;
+            const list = buckets.get(key) ?? [];
+            list.push(issue);
+            buckets.set(key, list);
+          }
+
+          for (const group of buckets.values()) {
+            if (group.length === 1) {
+              const issue = group[0];
+              const marker = L.marker([issue.location.lat, issue.location.lng], {
+                icon: icons.issueDivIcon(issue.status, issue.title),
+                title: `${issue.title} (${issue.status})`,
+              });
+              marker.on("click", (event) => {
+                L.DomEvent.stopPropagation(event);
+                onSelectRef.current(issue.id);
+              });
+              marker.addTo(issuesLayer);
+              continue;
+            }
+            const lat = group.reduce((s, i) => s + i.location.lat, 0) / group.length;
+            const lng = group.reduce((s, i) => s + i.location.lng, 0) / group.length;
+            const marker = L.marker([lat, lng], {
+              icon: icons.clusterIcon(group.length),
+              title: `${group.length} reports in this area`,
+            });
+            marker.on("click", () => {
+              map.flyTo([lat, lng], Math.min(zoom + 2, 16), { duration: 0.6 });
+            });
+            marker.addTo(issuesLayer);
+          }
+        };
+
+        map.on("zoomend", drawIssues);
+        map.on("moveend", drawIssues);
+        (map as LeafletMap & { _civicDraw?: () => void })._civicDraw = drawIssues;
+        drawIssues();
+
+        const resize = () => map.invalidateSize();
+        requestAnimationFrame(resize);
+        timer = window.setTimeout(resize, 200);
+        observer = new ResizeObserver(resize);
+        observer.observe(containerRef.current);
+        setStatus("ready");
+      } catch {
+        if (!cancelled) setStatus("error");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      observer?.disconnect();
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current as (LeafletMap & { _civicDraw?: () => void }) | null;
+    map?._civicDraw?.();
+  }, [issues, viewMode]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !flyTo) return;
+    map.flyTo([flyTo.lat, flyTo.lng], navigating ? 16 : Math.max(map.getZoom(), 14), { duration: 1 });
+  }, [flyTo, navigating]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const extras = extrasLayerRef.current;
+    const L = leafletRef.current;
+    if (!map || !extras || !L) return;
+    extras.clearLayers();
+    if (userApprox) {
+      L.circle([userApprox.lat, userApprox.lng], {
+        radius: (radiusKm ?? 5) * 1000,
+        color: "#0f766e",
+        weight: 1,
+        fillOpacity: 0.08,
+      }).addTo(extras);
+      L.circle([userApprox.lat, userApprox.lng], {
+        radius: 280,
+        color: "#0f766e",
+        weight: 2,
+        fillColor: "#14b8a6",
+        fillOpacity: 0.25,
+      }).addTo(extras);
+    }
+    routes?.forEach((route) => {
+      const selected = route.id === selectedRouteId;
+      L.polyline(
+        route.geometry.map((p) => [p.lat, p.lng] as [number, number]),
+        {
+          color: route.floodWarning ? "#b91c1c" : selected ? "#0f766e" : "#64748b",
+          weight: selected ? 6 : 4,
+          opacity: selected ? 0.95 : 0.45,
+        },
+      ).addTo(extras);
+    });
+  }, [userApprox, radiusKm, routes, selectedRouteId, status]);
+
   return (
-    <MapContainer
-      center={[ACCRA_CENTER.lat, ACCRA_CENTER.lng]}
-      zoom={DEFAULT_ZOOM}
-      className="civic-leaflet absolute inset-0 h-full w-full"
-      style={{ height: "100%", width: "100%" }}
-      zoomControl
-      attributionControl
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-      />
-      <FlyTo target={flyTo} zoom={navigating ? 16 : 14} />
-      <IssueLayers issues={issues} viewMode={viewMode} onSelect={onSelect} />
-      {userApprox && (
-        <Circle
-          center={[userApprox.lat, userApprox.lng]}
-          radius={(radiusKm ?? 5) * 1000}
-          pathOptions={{ color: "#0f766e", weight: 1, fillOpacity: 0.08 }}
-        />
+    <div className="civic-map-shell">
+      <div ref={containerRef} className="civic-map-root" />
+      {status === "loading" && (
+        <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-[#dce8dc]/70 text-sm text-muted-foreground">
+          Drawing Accra map…
+        </div>
       )}
-      {userApprox && (
-        <Circle
-          center={[userApprox.lat, userApprox.lng]}
-          radius={280}
-          pathOptions={{ color: "#0f766e", weight: 2, fillColor: "#14b8a6", fillOpacity: 0.25 }}
-        />
+      {status === "error" && (
+        <div className="absolute inset-0 z-[1] flex items-center justify-center bg-muted p-6 text-center text-sm">
+          The map library failed to load. Refresh the page.
+        </div>
       )}
-      {routes?.map((route) => {
-        const selected = route.id === selectedRouteId;
-        return (
-          <Polyline
-            key={route.id}
-            positions={route.geometry.map((p) => [p.lat, p.lng] as [number, number])}
-            pathOptions={{
-              color: route.floodWarning ? "#b91c1c" : selected ? "#0f766e" : "#64748b",
-              weight: selected ? 6 : 4,
-              opacity: selected ? 0.95 : 0.45,
-            }}
-          />
-        );
-      })}
-    </MapContainer>
+    </div>
   );
 }

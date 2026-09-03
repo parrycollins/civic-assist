@@ -17,7 +17,7 @@ export default function Page() {
     );
   }
   return (
-    <div className="h-full">
+    <div className="relative h-full min-h-[70dvh]">
       <CivicMapScreen mode="agency" agencyId={user.agencyId} />
     </div>
   );

@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     "*.cursor.com",
     "*.cursor.sh",
   ],
-  transpilePackages: ["leaflet", "react-leaflet", "leaflet.markercluster", "leaflet.heat"],
+  transpilePackages: ["leaflet"],
 };
 
 export default nextConfig;
