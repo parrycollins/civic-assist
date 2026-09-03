@@ -180,7 +180,7 @@ export function ReportForm({
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             Choose the closest category. You can add a photo and location next.
           </p>
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="mt-6 grid gap-2" role="group" aria-label="Problem category">
             {CHOICES.map((item) => (
               <CategoryCard
                 key={item.id}
@@ -189,7 +189,9 @@ export function ReportForm({
                 selected={choiceId === item.id}
                 onClick={() => {
                   setChoiceId(item.id);
-                  if (!title) setTitle(`${item.label} in the community`);
+                  if (!title || title.endsWith(" in the community")) {
+                    setTitle(`${item.label} in the community`);
+                  }
                 }}
               />
             ))}

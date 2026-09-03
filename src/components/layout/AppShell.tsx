@@ -28,6 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const user = useCivicStore((s) => s.user);
   const unread = useCivicStore((s) => s.notifications.filter((n) => !n.read).length);
   const hideChrome = pathname === "/login" || pathname === "/register";
+  const hideBottomNav = hideChrome || pathname === "/report";
   const fullBleed = pathname === "/map" || pathname === "/road-assist" || pathname === "/agency/map";
 
   if (hideChrome) {
@@ -97,9 +98,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
         )}
-        <main className={cn("flex-1", fullBleed ? "min-h-0 overflow-hidden" : "overflow-y-auto pb-36 md:pb-8")}>
+        <main className={cn("flex-1", fullBleed ? "min-h-0 overflow-hidden" : hideBottomNav ? "overflow-y-auto" : "overflow-y-auto pb-36 md:pb-8")}>
           {children}
         </main>
+        {!hideBottomNav && (
         <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 items-end rounded-[1.7rem] border border-white/50 bg-card/90 px-1 py-2 shadow-[0_16px_40px_-20px_rgb(16_32_24/0.45)] backdrop-blur-xl md:hidden">
           {citizenItems.map((item) => {
             const href =
@@ -151,6 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        )}
       </div>
     </div>
   );

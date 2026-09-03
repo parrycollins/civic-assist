@@ -404,13 +404,14 @@ export function RoadAssistView() {
                     ["myLocation", "📍 My Location"],
                   ] as [keyof Layers, string][]
                 ).map(([id, label]) => (
-                  <label key={id} className="flex items-center gap-1.5">
+                  <label key={id} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl px-1">
                     <input
                       type="checkbox"
+                      className="size-4 accent-primary"
                       checked={layers[id]}
                       onChange={(e) => setLayers((l) => ({ ...l, [id]: e.target.checked }))}
                     />
-                    {label}
+                    <span>{label}</span>
                   </label>
                 ))}
               </div>
