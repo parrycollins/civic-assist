@@ -8,6 +8,8 @@ CivicGH is a civic accountability app for Ghana. It connects three systems on on
 
 The map is a visual history of community problems and public-service work, not only a pinboard of complaints.
 
+The interface uses a Ghana-inspired CivicGH visual system: deep green, spare gold, Plus Jakarta Sans, and a shared `src/theme` token set. Dark mode is available from Profile.
+
 ## Run locally
 
 ```bash
