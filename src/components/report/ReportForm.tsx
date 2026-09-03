@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Check, ChevronLeft, MapPin } from "lucide-react";
 import { toast } from "sonner";
@@ -40,9 +40,15 @@ export function ReportForm({
   const user = useCivicStore((s) => s.user);
   const addIssue = useCivicStore((s) => s.addIssue);
   const [step, setStep] = useState(0);
-  const [choiceId, setChoiceId] = useState(
-    CHOICES.find((c) => c.hazard === preset?.roadHazard || c.category === preset?.category)?.id ?? "pothole",
-  );
+  const [choiceId, setChoiceId] = useState(() => {
+    if (preset?.roadHazard) {
+      return CHOICES.find((c) => c.hazard === preset.roadHazard)?.id ?? "pothole";
+    }
+    if (preset?.category) {
+      return CHOICES.find((c) => c.category === preset.category)?.id ?? "pothole";
+    }
+    return "pothole";
+  });
   const [title, setTitle] = useState(preset?.title ?? "");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<Severity>("medium");
@@ -51,36 +57,6 @@ export function ReportForm({
   const [coords, setCoords] = useState({ lat: 5.6037, lng: -0.187 });
   const [locLabel, setLocLabel] = useState("Accra (approximate)");
   const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("civicgh-report-draft");
-      if (!raw) return;
-      const draft = JSON.parse(raw) as {
-        step?: number;
-        choiceId?: string;
-        title?: string;
-        description?: string;
-        severity?: Severity;
-        agencyId?: string;
-      };
-      if (typeof draft.step === "number") setStep(Math.min(4, Math.max(0, draft.step)));
-      if (draft.choiceId) setChoiceId(draft.choiceId);
-      if (typeof draft.title === "string") setTitle(draft.title);
-      if (typeof draft.description === "string") setDescription(draft.description);
-      if (draft.severity) setSeverity(draft.severity);
-      if (draft.agencyId) setAgencyId(draft.agencyId);
-    } catch {
-      /* ignore broken drafts */
-    }
-  }, []);
-
-  useEffect(() => {
-    sessionStorage.setItem(
-      "civicgh-report-draft",
-      JSON.stringify({ step, choiceId, title, description, severity, agencyId }),
-    );
-  }, [step, choiceId, title, description, severity, agencyId]);
 
   const choice = CHOICES.find((c) => c.id === choiceId) ?? CHOICES[0];
   const road = useMemo(
@@ -128,7 +104,6 @@ export function ReportForm({
       agencyId,
     });
     setDone(true);
-    sessionStorage.removeItem("civicgh-report-draft");
     toast.success("Report submitted. The map will update immediately.");
     window.setTimeout(() => router.push(`/issues/${issue.id}`), 1400);
   }
