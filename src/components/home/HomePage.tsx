@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Map, Navigation, Plus, ShieldCheck } from "lucide-react";
 import { useCivicStore } from "@/lib/store";
@@ -19,6 +20,8 @@ export function HomePage() {
   const cats = categoryBreakdown(issues);
   const months = monthlyTrend(issues);
   const maxMonth = Math.max(1, ...months.map((m) => m.resolved));
+  const [hello, setHello] = useState("Hello");
+  useEffect(() => setHello(greeting()), []);
   const area = user?.area ?? "East Legon";
   const nearby = issues.filter((i) => i.location.area === area);
   const nearbyOpen = nearby.filter((i) => STATUS_META[i.status].layer !== "completed");
@@ -32,7 +35,7 @@ export function HomePage() {
         <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-gold/20 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-16 left-10 size-40 rounded-full bg-white/10 blur-2xl" />
         <p className="text-sm font-semibold text-primary-foreground/80">
-          {greeting()} {user ? user.name.split(" ")[0] : "there"} 👋
+          {hello} {user ? user.name.split(" ")[0] : "there"} 👋
         </p>
         <h1 className="mt-2 font-heading text-[2rem] leading-tight font-extrabold">
           Make your community better.
