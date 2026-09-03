@@ -6,15 +6,23 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DEMO_ACCOUNTS } from "@/lib/constants";
 import { useCivicStore } from "@/lib/store";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export function LoginPage() {
   const router = useRouter();
   const login = useCivicStore((s) => s.login);
   const [email, setEmail] = useState("ama@civicgh.gh");
   const [password, setPassword] = useState("civic2026");
+
+  function submit(nextEmail = email, nextPassword = password) {
+    const err = login(nextEmail, nextPassword);
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    const user = useCivicStore.getState().user;
+    toast.success(`Welcome${user ? `, ${user.name}` : ""}`);
+    router.push(user?.role === "agency" ? "/agency" : "/");
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4">
@@ -27,27 +35,39 @@ export function LoginPage() {
         className="mt-6 grid gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          const err = login(email, password);
-          if (err) {
-            toast.error(err);
-            return;
-          }
-          const user = useCivicStore.getState().user;
-          toast.success(`Welcome${user ? `, ${user.name}` : ""}`);
-          router.push(user?.role === "agency" ? "/agency" : "/");
+          submit();
         }}
       >
-        <div className="grid gap-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        <Button type="submit" size="lg">
+        <label className="grid gap-1.5 text-sm font-medium" htmlFor="email">
+          Email
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+        <label className="grid gap-1.5 text-sm font-medium" htmlFor="password">
+          Password
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+        <button
+          type="submit"
+          className="h-10 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
+        >
           Continue
-        </Button>
+        </button>
       </form>
       <p className="mt-4 text-sm">
         New here?{" "}
@@ -66,6 +86,7 @@ export function LoginPage() {
                 onClick={() => {
                   setEmail(a.email);
                   setPassword(a.password);
+                  submit(a.email, a.password);
                 }}
               >
                 {a.role === "citizen" ? "Citizen" : "Agency"} — {a.email} / {a.password}

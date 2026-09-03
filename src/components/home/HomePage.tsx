@@ -5,10 +5,8 @@ import { Map, Navigation, Megaphone, CheckCircle2 } from "lucide-react";
 import { useCivicStore } from "@/lib/store";
 import { platformStats } from "@/lib/performance";
 import { STATUS_META } from "@/lib/constants";
-import { buttonVariants } from "@/components/ui/button";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { StatusPill } from "@/components/map/IssueSheet";
-import { cn } from "@/lib/utils";
 import { getAgency } from "@/data/agencies";
 
 export function HomePage() {
@@ -29,17 +27,20 @@ export function HomePage() {
           CivicGH is a visual history of community problems and public-service work — not just a list of complaints.
         </p>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          <Link href="/map" className={cn(buttonVariants({ size: "lg" }), "bg-white text-primary hover:bg-white/90")}>
+          <a
+            href="/map"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-primary shadow-sm hover:bg-white/90"
+          >
             <Map className="size-4" />
             Explore Civic Map
-          </Link>
-          <Link
+          </a>
+          <a
             href="/road-assist"
-            className={cn(buttonVariants({ size: "lg", variant: "outline" }), "border-white/40 bg-transparent text-white hover:bg-white/10")}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-white/40 px-4 text-sm font-semibold text-white hover:bg-white/10"
           >
             <Navigation className="size-4" />
             Road Assist
-          </Link>
+          </a>
         </div>
       </section>
 

@@ -133,8 +133,10 @@
 }
 
 .civic-leaflet {
-  height: 100%;
-  width: 100%;
+  position: absolute;
+  inset: 0;
+  height: 100% !important;
+  width: 100% !important;
   background: #e8efe8;
 }
 

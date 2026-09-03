@@ -128,9 +128,13 @@ export const useCivicStore = create<CivicState>()(
       roadFeedback: [],
       hydrated: false,
       login: (email, password) => {
-        const account = get().accounts.find((a) => a.email === email);
+        const merged = [...get().accounts];
+        for (const demo of demoAccounts) {
+          if (!merged.some((a) => a.email === demo.email)) merged.push(demo);
+        }
+        const account = merged.find((a) => a.email === email);
         if (!account || account.password !== password) return "Email or password is incorrect.";
-        set({ user: account.user });
+        set({ user: account.user, accounts: merged });
         return null;
       },
       register: (name, email, password, area) => {

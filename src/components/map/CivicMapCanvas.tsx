@@ -1,25 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
-import { Circle, MapContainer, Polyline, TileLayer, useMap } from "react-leaflet";
+import { useEffect, useState } from "react";
+import { Circle, MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster";
-import "leaflet.heat";
 import { clusterIcon, issueDivIcon } from "@/components/map/markers";
 import { ACCRA_CENTER, DEFAULT_ZOOM } from "@/lib/constants";
 import type { GeoPoint, Issue, ScoredRoute } from "@/lib/types";
 
-type LeafletWithPlugins = typeof L & {
-  markerClusterGroup: (options?: Record<string, unknown>) => L.FeatureGroup;
-  heatLayer: (
-    latlngs: Array<[number, number, number?]>,
-    options?: Record<string, unknown>,
-  ) => L.Layer;
-};
+if (typeof window !== "undefined") {
+  (window as unknown as { L: typeof L }).L = L;
+}
 
-const LP = L as LeafletWithPlugins;
+type ClusterFactory = (options?: Record<string, unknown>) => L.Layer & {
+  addLayer: (layer: L.Layer) => void;
+};
+type HeatFactory = (
+  latlngs: Array<[number, number, number?]>,
+  options?: Record<string, unknown>,
+) => L.Layer;
 
 function FlyTo({ target, zoom }: { target?: GeoPoint | null; zoom?: number }) {
   const map = useMap();
@@ -40,10 +40,33 @@ function IssueLayers({
   onSelect: (id: string) => void;
 }) {
   const map = useMap();
+  const [plugins, setPlugins] = useState<{
+    cluster?: ClusterFactory;
+    heat?: HeatFactory;
+  }>({});
 
   useEffect(() => {
-    if (viewMode === "density") {
-      const heat = LP.heatLayer(
+    let cancelled = false;
+    (window as unknown as { L: typeof L }).L = L;
+    Promise.allSettled([import("leaflet.markercluster"), import("leaflet.heat")]).then(() => {
+      if (cancelled) return;
+      const leaflet = L as typeof L & {
+        markerClusterGroup?: ClusterFactory;
+        heatLayer?: HeatFactory;
+      };
+      setPlugins({
+        cluster: leaflet.markerClusterGroup,
+        heat: leaflet.heatLayer,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (viewMode === "density" && plugins.heat) {
+      const heat = plugins.heat(
         issues.map((i) => [i.location.lat, i.location.lng, i.status === "verified" ? 0.4 : 0.9]),
         {
           radius: 28,
@@ -58,27 +81,43 @@ function IssueLayers({
       };
     }
 
-    const cluster = LP.markerClusterGroup({
-      maxClusterRadius: 56,
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      iconCreateFunction: (c: { getChildCount: () => number }) => clusterIcon(c.getChildCount()),
-    });
-
-    for (const issue of issues) {
-      const marker = L.marker([issue.location.lat, issue.location.lng], {
-        icon: issueDivIcon(issue.status, issue.title),
-        title: `${issue.title} (${issue.status})`,
-        alt: `${issue.title}, ${issue.status.replace(/_/g, " ")}`,
+    if (viewMode === "markers" && plugins.cluster) {
+      const cluster = plugins.cluster({
+        maxClusterRadius: 56,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        iconCreateFunction: (c: { getChildCount: () => number }) => clusterIcon(c.getChildCount()),
       });
-      marker.on("click", () => onSelect(issue.id));
-      cluster.addLayer(marker);
+      for (const issue of issues) {
+        const marker = L.marker([issue.location.lat, issue.location.lng], {
+          icon: issueDivIcon(issue.status, issue.title),
+          title: `${issue.title} (${issue.status})`,
+          alt: `${issue.title}, ${issue.status.replace(/_/g, " ")}`,
+        });
+        marker.on("click", () => onSelect(issue.id));
+        cluster.addLayer(marker);
+      }
+      map.addLayer(cluster);
+      return () => {
+        map.removeLayer(cluster);
+      };
     }
-    map.addLayer(cluster);
-    return () => {
-      map.removeLayer(cluster);
-    };
-  }, [issues, viewMode, map, onSelect]);
+  }, [issues, viewMode, map, onSelect, plugins]);
+
+  if (viewMode === "markers" && !plugins.cluster) {
+    return (
+      <>
+        {issues.map((issue) => (
+          <Marker
+            key={issue.id}
+            position={[issue.location.lat, issue.location.lng]}
+            icon={issueDivIcon(issue.status, issue.title)}
+            eventHandlers={{ click: () => onSelect(issue.id) }}
+          />
+        ))}
+      </>
+    );
+  }
 
   return null;
 }
@@ -108,8 +147,9 @@ export function CivicMapCanvas({
     <MapContainer
       center={[ACCRA_CENTER.lat, ACCRA_CENTER.lng]}
       zoom={DEFAULT_ZOOM}
-      className="civic-leaflet h-full w-full"
-      zoomControl={false}
+      className="civic-leaflet absolute inset-0 h-full w-full"
+      style={{ height: "100%", width: "100%" }}
+      zoomControl
       attributionControl
     >
       <TileLayer
