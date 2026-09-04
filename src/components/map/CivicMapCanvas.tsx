@@ -6,6 +6,14 @@ import type { GeoPoint, Issue, ScoredRoute } from "@/lib/types";
 import type { Map as LeafletMap, LayerGroup } from "leaflet";
 import type LType from "leaflet";
 
+function polylineColor(route: ScoredRoute, selected: boolean) {
+  if (route.floodWarning && !selected) return "#c45c26";
+  if (route.emphasis === "condition") return selected ? "#d4a017" : "#c9a227";
+  if (route.emphasis === "fastest") return selected ? "#0d4f3c" : "#2d6a4f";
+  if (selected) return "#0d4f3c";
+  return "#8a8478";
+}
+
 export function CivicMapCanvas({
   issues,
   viewMode,
@@ -16,6 +24,8 @@ export function CivicMapCanvas({
   routes,
   selectedRouteId,
   navigating,
+  onMapClick,
+  onSelectRoute,
 }: {
   issues: Issue[];
   viewMode: "markers" | "density";
@@ -26,6 +36,8 @@ export function CivicMapCanvas({
   routes?: ScoredRoute[];
   selectedRouteId?: string;
   navigating?: boolean;
+  onMapClick?: (point: GeoPoint) => void;
+  onSelectRoute?: (id: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -33,13 +45,19 @@ export function CivicMapCanvas({
   const extrasLayerRef = useRef<LayerGroup | null>(null);
   const leafletRef = useRef<typeof LType | null>(null);
   const onSelectRef = useRef(onSelect);
+  const onMapClickRef = useRef(onMapClick);
+  const onSelectRouteRef = useRef(onSelectRoute);
   const issuesRef = useRef(issues);
   const viewModeRef = useRef(viewMode);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  onSelectRef.current = onSelect;
-  issuesRef.current = issues;
-  viewModeRef.current = viewMode;
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+    onMapClickRef.current = onMapClick;
+    onSelectRouteRef.current = onSelectRoute;
+    issuesRef.current = issues;
+    viewModeRef.current = viewMode;
+  });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -131,6 +149,9 @@ export function CivicMapCanvas({
           }
         };
 
+        map.on("click", (event) => {
+          onMapClickRef.current?.({ lat: event.latlng.lat, lng: event.latlng.lng });
+        });
         map.on("zoomend", drawIssues);
         map.on("moveend", drawIssues);
         (map as LeafletMap & { _civicDraw?: () => void })._civicDraw = drawIssues;
@@ -188,18 +209,34 @@ export function CivicMapCanvas({
         fillOpacity: 0.25,
       }).addTo(extras);
     }
-    routes?.forEach((route) => {
+    const ordered = [...(routes ?? [])].sort((a, b) => Number(a.id === selectedRouteId) - Number(b.id === selectedRouteId));
+    ordered.forEach((route) => {
       const selected = route.id === selectedRouteId;
-      L.polyline(
+      const line = L.polyline(
         route.geometry.map((p) => [p.lat, p.lng] as [number, number]),
         {
-          color: route.floodWarning ? "#b91c1c" : selected ? "#0f766e" : "#64748b",
-          weight: selected ? 6 : 4,
-          opacity: selected ? 0.95 : 0.45,
+          color: polylineColor(route, selected),
+          weight: selected ? 7 : 4,
+          opacity: selected ? 0.95 : 0.55,
         },
-      ).addTo(extras);
+      );
+      line.on("click", (event) => {
+        L.DomEvent.stopPropagation(event);
+        onSelectRouteRef.current?.(route.id);
+      });
+      line.addTo(extras);
     });
   }, [userApprox, radiusKm, routes, selectedRouteId, status]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = leafletRef.current;
+    if (!map || !L || navigating || !routes?.length || status !== "ready") return;
+    const pts = routes.flatMap((route) => route.geometry);
+    if (pts.length < 2) return;
+    const bounds = L.latLngBounds(pts.map((p) => [p.lat, p.lng] as [number, number]));
+    map.fitBounds(bounds, { paddingTopLeft: [28, 210], paddingBottomRight: [28, 260], maxZoom: 14 });
+  }, [routes, navigating, status]);
 
   return (
     <div className="civic-map-shell">

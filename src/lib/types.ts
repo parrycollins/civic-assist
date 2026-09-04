@@ -232,6 +232,10 @@ export interface ScoredRoute {
   floodWarning: boolean;
   summary: string;
   recommendation?: string;
+  /** How this route is offered in Road Assist. */
+  emphasis?: "fastest" | "condition" | "balanced" | "alt";
+  /** True when the fastest corridor also has the best reported road condition. */
+  alsoBestCondition?: boolean;
 }
 
 export type RoutePreference = "fastest" | "condition" | "balanced";

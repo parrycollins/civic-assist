@@ -4,7 +4,7 @@ CivicGH is a civic accountability app for Ghana. It connects three systems on on
 
 1. **Civic reporting** — citizens report problems with photos and approximate locations.
 2. **Civic accountability** — agencies update status, upload before / during / after evidence, and are scored on resolution and citizen verification.
-3. **Road Assist** — the same civic data overlays live routes so travellers can compare fastest, balanced, and best-condition options.
+3. **Road Assist** — search any Greater Accra neighbourhood, landmark, or street (or tap the map). CivicGH compares a fastest corridor with a better-condition alternative that detours around reported floods, closures, and potholes.
 
 The map is a visual history of community problems and public-service work, not only a pinboard of complaints.
 
@@ -51,7 +51,7 @@ Open [http://localhost:43217](http://localhost:43217).
 - Full-screen interactive civic map of Greater Accra
 - Issue cards and a complaint history with before / during / after evidence that is appended, never overwritten
 - Citizen verification and dispute
-- Road Assist
+- **Road Assist** — trips anywhere in Greater Accra. Search is not limited to a handful of landmarks. Fastest (green) and best-condition (gold) corridors are scored separately from civic road reports.
 - Privacy: no public phone/email; map pins use approximated public locations
 - **Completed Works** — a public civic achievement archive in the bottom navigation (Home · Map · Road Assist · Report · Completed · Profile)
 - **CivicGH Cloud dispatch** — every report is stored in the app cloud. Reports of the same problem near the same location are counted together. After you file, CivicGH tells you if you are the 1st, 2nd, 3rd… person to report it. The responsible agency is notified only when **5** nearby complaints are reached.

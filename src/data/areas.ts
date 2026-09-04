@@ -54,16 +54,84 @@ export const PLACES: Place[] = [
   { id: "n1", name: "N1 Tema Motorway", kind: "street", center: { lat: 5.64, lng: -0.08 }, aliases: ["n1", "tema motorway"] },
   { id: "ring-road", name: "Ring Road", kind: "street", center: { lat: 5.57, lng: -0.2 }, aliases: ["ring road"] },
   { id: "oxford-street", name: "Oxford Street", kind: "street", center: { lat: 5.556, lng: -0.174 }, aliases: ["oxford street", "osu oxford"] },
+  { id: "achimota-mall", name: "Achimota Mall", kind: "landmark", center: { lat: 5.613, lng: -0.232 }, aliases: ["achimota mall"] },
+  { id: "junction-mall", name: "Junction Mall", kind: "landmark", center: { lat: 5.603, lng: -0.182 }, aliases: ["junction mall", "nungua junction mall"] },
+  { id: "marina-mall", name: "Marina Mall", kind: "landmark", center: { lat: 5.606, lng: -0.177 }, aliases: ["marina mall"] },
+  { id: "west-hills-mall", name: "West Hills Mall", kind: "landmark", center: { lat: 5.58, lng: -0.32 }, aliases: ["westhills"] },
+  { id: "labadi-beach", name: "Labadi Beach", kind: "landmark", center: { lat: 5.56, lng: -0.144 }, aliases: ["labadi", "la beach"] },
+  { id: "laboma", name: "Laboma Beach", kind: "landmark", center: { lat: 5.555, lng: -0.152 }, aliases: ["laboma"] },
+  { id: "ridge", name: "Ridge", kind: "neighborhood", center: { lat: 5.56, lng: -0.2 }, aliases: ["north ridge", "west ridge"] },
+  { id: "roman-ridge", name: "Roman Ridge", kind: "neighborhood", center: { lat: 5.6, lng: -0.19 }, aliases: ["roman ridge"] },
+  { id: "abelemkpe", name: "Abelemkpe", kind: "neighborhood", center: { lat: 5.6, lng: -0.21 }, aliases: ["abelemkpe"] },
+  { id: "tesano", name: "Tesano", kind: "neighborhood", center: { lat: 5.605, lng: -0.235 }, aliases: ["tesano"] },
+  { id: "kwabenya", name: "Kwabenya", kind: "neighborhood", center: { lat: 5.7, lng: -0.22 }, aliases: ["kwabenya", "atomic"] },
+  { id: "ashaiman", name: "Ashaiman", kind: "neighborhood", center: { lat: 5.7, lng: -0.04 }, aliases: ["ashaiman"] },
+  { id: "sakumono", name: "Sakumono", kind: "neighborhood", center: { lat: 5.62, lng: -0.05 }, aliases: ["sakumono"] },
+  { id: "lashibi", name: "Lashibi", kind: "neighborhood", center: { lat: 5.67, lng: -0.03 }, aliases: ["lashibi"] },
+  { id: "community-1", name: "Tema Community 1", kind: "neighborhood", center: { lat: 5.64, lng: -0.01 }, aliases: ["community 1", "tema community 1"] },
+  { id: "pokuase", name: "Pokuase", kind: "neighborhood", center: { lat: 5.7, lng: -0.28 }, aliases: ["pokuase"] },
+  { id: "kasoa", name: "Kasoa", kind: "neighborhood", center: { lat: 5.53, lng: -0.42 }, aliases: ["kasoa"] },
+  { id: "mallam", name: "Mallam", kind: "neighborhood", center: { lat: 5.56, lng: -0.3 }, aliases: ["mallam"] },
+  { id: "odorkor", name: "Odorkor", kind: "neighborhood", center: { lat: 5.575, lng: -0.28 }, aliases: ["odorkor"] },
+  { id: "darkuman", name: "Darkuman", kind: "neighborhood", center: { lat: 5.58, lng: -0.26 }, aliases: ["darkuman"] },
+  { id: "mataheko", name: "Mataheko", kind: "neighborhood", center: { lat: 5.55, lng: -0.25 }, aliases: ["mataheko"] },
+  { id: "ablekuma", name: "Ablekuma", kind: "neighborhood", center: { lat: 5.545, lng: -0.28 }, aliases: ["ablekuma"] },
+  { id: "gbawe", name: "Gbawe", kind: "neighborhood", center: { lat: 5.57, lng: -0.31 }, aliases: ["gbawe"] },
+  { id: "bortianor", name: "Bortianor", kind: "neighborhood", center: { lat: 5.53, lng: -0.35 }, aliases: ["bortianor"] },
+  { id: "mcCarthy-hill", name: "McCarthy Hill", kind: "neighborhood", center: { lat: 5.555, lng: -0.3 }, aliases: ["mccarthy hill"] },
+  { id: "abeka", name: "Abeka", kind: "neighborhood", center: { lat: 5.6, lng: -0.245 }, aliases: ["abeka"] },
+  { id: "kwashieman", name: "Kwashieman", kind: "neighborhood", center: { lat: 5.595, lng: -0.27 }, aliases: ["kwashieman"] },
+  { id: "taifa", name: "Taifa", kind: "neighborhood", center: { lat: 5.68, lng: -0.24 }, aliases: ["taifa"] },
+  { id: "atomic-junction", name: "Atomic Junction", kind: "landmark", center: { lat: 5.675, lng: -0.2 }, aliases: ["atomic junction"] },
+  { id: "madina-zongo", name: "Madina Zongo Junction", kind: "landmark", center: { lat: 5.67, lng: -0.17 }, aliases: ["zongo junction"] },
+  { id: "37-roundabout", name: "37 Roundabout", kind: "landmark", center: { lat: 5.586, lng: -0.178 }, aliases: ["37"] },
+  { id: "tema-station", name: "Tema Station", kind: "landmark", center: { lat: 5.55, lng: -0.21 }, aliases: ["tema station"] },
+  { id: "accra-sports", name: "Accra Sports Stadium", kind: "landmark", center: { lat: 5.551, lng: -0.192 }, aliases: ["ohene djan", "sports stadium"] },
+  { id: "parliament", name: "Parliament House", kind: "landmark", center: { lat: 5.557, lng: -0.186 }, aliases: ["parliament"] },
+  { id: "trade-fair", name: "Accra International Trade Fair", kind: "landmark", center: { lat: 5.568, lng: -0.16 }, aliases: ["trade fair", "labadi trade fair"] },
+  { id: "ups-accra", name: "University of Professional Studies", kind: "landmark", center: { lat: 5.66, lng: -0.17 }, aliases: ["upsa"] },
+  { id: "giffard-road", name: "Giffard Road", kind: "street", center: { lat: 5.59, lng: -0.1 }, aliases: ["giffard road"] },
+  { id: "winneba-road", name: "Winneba Road", kind: "street", center: { lat: 5.59, lng: -0.26 }, aliases: ["winneba road"] },
+  { id: "nima-highway", name: "Nima Highway", kind: "street", center: { lat: 5.586, lng: -0.196 }, aliases: ["nima highway"] },
+  { id: "graphic-road", name: "Graphic Road", kind: "street", center: { lat: 5.545, lng: -0.22 }, aliases: ["graphic road"] },
+  { id: "high-street", name: "High Street Accra", kind: "street", center: { lat: 5.543, lng: -0.207 }, aliases: ["high street"] },
+  { id: "independence-ave", name: "Independence Avenue", kind: "street", center: { lat: 5.57, lng: -0.19 }, aliases: ["independence avenue"] },
+  { id: "coca-cola-roundabout", name: "Coca-Cola Roundabout", kind: "landmark", center: { lat: 5.63, lng: -0.1 }, aliases: ["coca cola roundabout"] },
+  { id: "awoshie", name: "Awoshie", kind: "neighborhood", center: { lat: 5.6, lng: -0.29 }, aliases: ["awoshie"] },
+  { id: "sowutuom", name: "Sowutuom", kind: "neighborhood", center: { lat: 5.62, lng: -0.29 }, aliases: ["sowutuom"] },
+  { id: "adjiriganor", name: "Adjiringanor", kind: "neighborhood", center: { lat: 5.64, lng: -0.13 }, aliases: ["adjiriganor", "adjiringanor"] },
+  { id: "trasacco", name: "Trasacco Valley", kind: "neighborhood", center: { lat: 5.64, lng: -0.14 }, aliases: ["trasacco"] },
+  { id: "east-legon-hills", name: "East Legon Hills", kind: "neighborhood", center: { lat: 5.66, lng: -0.13 }, aliases: ["east legon hills"] },
+  { id: "agbogba", name: "Agbogba", kind: "neighborhood", center: { lat: 5.68, lng: -0.19 }, aliases: ["agbogba"] },
+  { id: "pantang", name: "Pantang", kind: "neighborhood", center: { lat: 5.72, lng: -0.18 }, aliases: ["pantang"] },
+  { id: "adenta-barrier", name: "Adenta Barrier", kind: "landmark", center: { lat: 5.705, lng: -0.16 }, aliases: ["adenta barrier"] },
+  { id: "ashongman", name: "Ashongman", kind: "neighborhood", center: { lat: 5.7, lng: -0.21 }, aliases: ["ashongman"] },
+  { id: "dome-pillar-2", name: "Dome Pillar Two", kind: "neighborhood", center: { lat: 5.66, lng: -0.235 }, aliases: ["pillar 2"] },
+  { id: "north-kaneshie", name: "North Kaneshie", kind: "neighborhood", center: { lat: 5.58, lng: -0.245 }, aliases: ["north kaneshie"] },
+  { id: "russian-bungalows", name: "Russian Bungalows", kind: "neighborhood", center: { lat: 5.62, lng: -0.16 }, aliases: ["russian bungalows"] },
+  { id: "cantonments-road", name: "Cantonments Road", kind: "street", center: { lat: 5.575, lng: -0.175 }, aliases: ["cantonments road"] },
+  { id: "makola", name: "Makola Market", kind: "landmark", center: { lat: 5.548, lng: -0.207 }, aliases: ["makola"] },
+  { id: "nkrumah-park", name: "Kwame Nkrumah Memorial Park", kind: "landmark", center: { lat: 5.545, lng: -0.206 }, aliases: ["nkrumah mausoleum", "kwame nkrumah memorial"] },
+  { id: "ac-mall", name: "A&C Mall", kind: "landmark", center: { lat: 5.636, lng: -0.154 }, aliases: ["a and c mall", "a&c"] },
+  { id: "okaishie", name: "Okaishie", kind: "neighborhood", center: { lat: 5.55, lng: -0.21 }, aliases: ["okaishie"] },
+  { id: "agbogbloshie", name: "Agbogbloshie", kind: "neighborhood", center: { lat: 5.548, lng: -0.223 }, aliases: ["agbogbloshie"] },
 ];
 
 export function findPlaces(query: string) {
   const q = query.trim().toLowerCase();
-  if (!q) return [];
-  return PLACES.filter(
-    (p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.aliases.some((a) => a.includes(q)),
-  );
+  if (q.length < 2) return [];
+  return PLACES.map((place) => {
+    const name = place.name.toLowerCase();
+    const aliases = place.aliases.map((alias) => alias.toLowerCase());
+    let score = 0;
+    if (name === q || aliases.includes(q)) score = 100;
+    else if (name.startsWith(q) || aliases.some((alias) => alias.startsWith(q))) score = 80;
+    else if (name.includes(q) || aliases.some((alias) => alias.includes(q))) score = 50;
+    return { place, score };
+  })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.place);
 }
 
 export function getAreaById(id: string) {

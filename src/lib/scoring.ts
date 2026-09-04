@@ -3,15 +3,15 @@ import { SEVERITY_META, STATUS_META } from "./constants";
 import type { Issue, RoadHazard, ScoredRoute } from "./types";
 
 const HAZARD_PENALTY: Record<RoadHazard, number> = {
-  pothole: 8,
-  flooding: 18,
-  obstruction: 12,
-  construction: 7,
-  closure: 40,
-  traffic_light: 6,
-  damaged_road: 10,
-  accident: 16,
-  other: 5,
+  pothole: 12,
+  flooding: 28,
+  obstruction: 16,
+  construction: 9,
+  closure: 50,
+  traffic_light: 7,
+  damaged_road: 14,
+  accident: 22,
+  other: 6,
 };
 
 export function recencyWeight(iso: string, now = new Date()) {
@@ -76,14 +76,18 @@ export function pickRecommendedRoute(
     return [...routes].sort((a, b) => {
       const flood = Number(a.floodWarning) - Number(b.floodWarning);
       if (flood !== 0) return flood;
-      return b.conditionScore - a.conditionScore || a.durationMin - b.durationMin;
+      const hazards = a.hazards.length - b.hazards.length;
+      if (hazards !== 0) return hazards;
+      const score = b.conditionScore - a.conditionScore;
+      if (score !== 0) return score;
+      return a.durationMin - b.durationMin;
     })[0];
   }
   return [...routes].sort((a, b) => {
     const aCost =
-      a.durationMin + (100 - a.conditionScore) * 0.35 + (a.floodWarning ? 12 : 0);
+      a.durationMin + (100 - a.conditionScore) * 0.55 + (a.floodWarning ? 18 : 0) + a.hazards.length * 3;
     const bCost =
-      b.durationMin + (100 - b.conditionScore) * 0.35 + (b.floodWarning ? 12 : 0);
+      b.durationMin + (100 - b.conditionScore) * 0.55 + (b.floodWarning ? 18 : 0) + b.hazards.length * 3;
     return aCost - bCost;
   })[0];
 }

@@ -1,19 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Layers, LocateFixed, Navigation } from "lucide-react";
 import { toast } from "sonner";
-import { findPlaces } from "@/data/areas";
+import { areaForPoint } from "@/data/areas";
 import { HAZARD_META } from "@/lib/constants";
 import { ordinal } from "@/lib/dispatch";
+import { inGreaterAccra } from "@/lib/accra";
 import { approximateLocation } from "@/lib/geo";
-import { planTrip } from "@/lib/routing";
+import { planTrip, type GeocodeHit } from "@/lib/routing";
 import { pickRecommendedRoute } from "@/lib/scoring";
 import { useCivicStore } from "@/lib/store";
 import type { GeoPoint, RoadHazard, RoutePreference, ScoredRoute } from "@/lib/types";
 import { CivicMapCanvas } from "@/components/map/CivicMapCanvas";
 import { IssueSheet } from "@/components/map/IssueSheet";
+import { firstAccraPlace, PlaceSearchField } from "@/components/road-assist/PlaceSearchField";
 import { cn } from "@/lib/utils";
 
 const QUICK: { id: RoadHazard; label: string }[] = [
@@ -48,18 +50,32 @@ const DEFAULT_LAYERS: Layers = {
   myLocation: true,
 };
 
-function routeTitle(route: ScoredRoute, routes: ScoredRoute[], recommended?: ScoredRoute) {
-  const fastest = [...routes].sort((a, b) => a.durationMin - b.durationMin)[0];
-  if (route.id === recommended?.id) return "Recommended";
-  if (route.id === fastest?.id) return "Fastest";
-  return "Alternative";
+function routeTitle(route: ScoredRoute) {
+  if (route.emphasis === "fastest" && route.alsoBestCondition) {
+    return "Fastest · also the best road condition";
+  }
+  if (route.emphasis === "fastest") return "Fastest";
+  if (route.emphasis === "condition") return "Best road condition";
+  if (route.emphasis === "balanced") return "Recommended";
+  return "Alternative Accra route";
+}
+
+function extraVsFastest(route: ScoredRoute, routes: ScoredRoute[]) {
+  const fastest = routes.find((item) => item.emphasis === "fastest") ?? [...routes].sort((a, b) => a.durationMin - b.durationMin)[0];
+  if (!fastest || route.id === fastest.id) return null;
+  const extra = Math.max(0, Math.round(route.durationMin - fastest.durationMin));
+  if (extra === 0) return "Same time as the fastest corridor";
+  return `${extra} min longer than the fastest`;
 }
 
 function conditionLine(route: ScoredRoute) {
-  if (route.floodWarning) return "⚠️ Flooding reported nearby";
-  if (route.hazards.length > 0) return `⚠️ ${route.hazards.length} road issue${route.hazards.length === 1 ? "" : "s"}`;
-  if (route.conditionScore >= 75) return "🟢 Good road condition";
-  return "🟡 Fair road condition";
+  if (route.floodWarning) return `Flooding reported nearby · condition ${route.conditionScore}/100`;
+  if (route.hazards.length > 0) {
+    return `${route.hazards.length} road issue${route.hazards.length === 1 ? "" : "s"} · condition ${route.conditionScore}/100`;
+  }
+  if (route.conditionScore >= 85) return `Good reported condition · ${route.conditionScore}/100`;
+  if (route.conditionScore >= 60) return `Fair reported condition · ${route.conditionScore}/100`;
+  return `Poor reported condition · ${route.conditionScore}/100`;
 }
 
 export function RoadAssistView() {
@@ -84,6 +100,7 @@ export function RoadAssistView() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [flyTo, setFlyTo] = useState<GeoPoint | null>(origin);
+  const planGen = useRef(0);
 
   const visibleIssues = useMemo(() => {
     return issues.filter((issue) => {
@@ -100,17 +117,33 @@ export function RoadAssistView() {
   }, [issues, layers]);
 
   const chosen = routes.find((r) => r.id === selectedRouteId) ?? pickRecommendedRoute(routes, preference);
+  const distinctCondition = routes.some((route) => route.emphasis === "condition" && !route.alsoBestCondition);
 
-  async function searchDestination(q: string) {
-    const local = findPlaces(q);
-    if (local[0]) {
-      setDest(local[0].center);
-      setDestQuery(local[0].name);
-      setFlyTo(local[0].center);
-      return local[0].center;
+  function applyPlace(hit: GeocodeHit, kind: "origin" | "destination") {
+    const point = { lat: hit.lat, lng: hit.lng };
+    if (!inGreaterAccra(point)) {
+      toast.error("Road Assist only plans trips inside Greater Accra.");
+      return null;
     }
-    toast.error("No matching Accra place. Try East Legon, Accra Mall, or Spintex Road.");
-    return null;
+    if (kind === "origin") {
+      setOrigin(point);
+      setOriginQuery(hit.label);
+    } else {
+      setDest(point);
+      setDestQuery(hit.label);
+    }
+    setFlyTo(point);
+    return point;
+  }
+
+  async function resolveDestination(q: string) {
+    if (dest && destQuery.trim().toLowerCase() === q.trim().toLowerCase()) return dest;
+    const hit = await firstAccraPlace(q);
+    if (!hit) {
+      toast.error("No matching place in Greater Accra. Search a neighbourhood, landmark, or street — or tap the map.");
+      return null;
+    }
+    return applyPlace(hit, "destination");
   }
 
   async function useCurrentOrigin() {
@@ -132,26 +165,45 @@ export function RoadAssistView() {
     );
   }
 
-  async function compareRoutes(to = dest) {
+  async function compareRoutes(to = dest, pref = preference) {
     if (!to) {
       toast.error("Choose a destination first.");
       return;
     }
+    if (!inGreaterAccra(origin) || !inGreaterAccra(to)) {
+      toast.error("Road Assist only plans trips inside Greater Accra.");
+      return;
+    }
+    const gen = ++planGen.current;
     setLoading(true);
     try {
-      const scored = await planTrip(origin, to, issues, preference);
+      const scored = await planTrip(origin, to, issues, pref);
+      if (gen !== planGen.current) return;
       setRoutes(scored);
-      const rec = pickRecommendedRoute(scored, preference);
+      const rec = pickRecommendedRoute(scored, pref);
       setSelectedRouteId(rec?.id);
-      setFlyTo(to);
       if (rec?.floodWarning) {
-        toast.warning("Flooding reported on this route.");
+        toast.warning("Flooding reported on this route. The gold line is the better-condition alternative.");
       }
     } catch {
-      toast.error("Could not calculate routes.");
+      if (gen !== planGen.current) return;
+      toast.error("Could not calculate routes for that Accra trip.");
     } finally {
-      setLoading(false);
+      if (gen === planGen.current) setLoading(false);
     }
+  }
+
+  function dropPin(point: GeoPoint) {
+    if (navigating) return;
+    if (!inGreaterAccra(point)) {
+      toast.error("That pin is outside Greater Accra.");
+      return;
+    }
+    const area = areaForPoint(point.lat, point.lng);
+    setDest(point);
+    setDestQuery(`Pin near ${area.name}`);
+    setFlyTo(point);
+    toast.message(`Destination set near ${area.name}`);
   }
 
   function startNav() {
@@ -213,6 +265,8 @@ export function RoadAssistView() {
         routes={routes}
         selectedRouteId={chosen?.id}
         navigating={navigating}
+        onMapClick={dropPin}
+        onSelectRoute={setSelectedRouteId}
       />
 
       {!navigating && (
@@ -222,7 +276,7 @@ export function RoadAssistView() {
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <p className="font-heading text-lg font-extrabold">Road Assist</p>
-                  <p className="text-xs text-muted-foreground">Premium civic navigation</p>
+                  <p className="text-xs text-muted-foreground">Trips anywhere in Greater Accra</p>
                 </div>
                 <Link href="/map" className="text-xs font-bold text-primary">
                   Civic Map
@@ -233,38 +287,36 @@ export function RoadAssistView() {
                 className="mt-2 flex gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  void searchDestination(destQuery).then((p) => p && compareRoutes(p));
+                  void resolveDestination(destQuery).then((p) => p && compareRoutes(p));
                 }}
               >
-                <input
+                <PlaceSearchField
+                  label="Search destination"
                   value={destQuery}
-                  onChange={(e) => setDestQuery(e.target.value)}
-                  placeholder="East Legon, Accra Mall, Spintex…"
-                  className="h-13 h-12 flex-1 rounded-2xl bg-secondary px-4 text-base outline-none"
-                  aria-label="Search destination"
+                  onChange={setDestQuery}
+                  onPick={(hit) => applyPlace(hit, "destination")}
+                  placeholder="Madina Market, Kaneshie, any Accra street…"
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground"
+                  className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground"
                   aria-label="Find routes"
                 >
                   <Navigation className="size-5" />
                 </button>
               </form>
+              <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+                Search any neighbourhood, landmark, or street in Greater Accra — or tap the map to drop a pin.
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <input
+                <PlaceSearchField
+                  label="Starting location"
                   value={originQuery}
-                  onChange={(e) => setOriginQuery(e.target.value)}
-                  onBlur={() => {
-                    const hit = findPlaces(originQuery)[0];
-                    if (hit) {
-                      setOrigin(hit.center);
-                      setOriginQuery(hit.name);
-                    }
-                  }}
-                  className="h-10 min-w-0 flex-1 rounded-2xl bg-secondary px-3 text-sm outline-none"
-                  aria-label="Starting location"
+                  onChange={setOriginQuery}
+                  onPick={(hit) => applyPlace(hit, "origin")}
+                  placeholder="Start from any Accra place"
+                  className="h-10 [&_input]:h-10 [&_input]:text-sm"
                 />
                 <button
                   type="button"
@@ -318,13 +370,21 @@ export function RoadAssistView() {
           <div className="pointer-events-auto mx-auto grid max-w-xl gap-2">
             {chosen?.floodWarning && (
               <div className="rounded-[1.3rem] bg-red-50 p-3 text-sm dark:bg-red-950/50">
-                ⚠️ Flooding reported on this route. An alternative with fewer flood reports is highlighted when
-                available.
+                Flooding is reported on the selected route. Switch to Best condition for the gold corridor when it
+                avoids that water.
               </div>
             )}
+            {!distinctCondition && routes.length > 0 && (
+              <p className="rounded-[1.1rem] bg-secondary/80 px-3 py-2 text-[11px] leading-4 text-muted-foreground">
+                Civic reports on these corridors currently look similar. Fastest is also the better-condition option
+                until a detour clearly avoids more potholes, floods, or closures.
+              </p>
+            )}
             {routes.map((route) => {
-              const title = routeTitle(route, routes, chosen);
-              const recommended = title === "Recommended";
+              const title = routeTitle(route);
+              const selected = route.id === chosen?.id;
+              const conditionPick = route.emphasis === "condition" && !route.alsoBestCondition;
+              const extra = extraVsFastest(route, routes);
               return (
                 <button
                   key={route.id}
@@ -332,8 +392,8 @@ export function RoadAssistView() {
                   onClick={() => setSelectedRouteId(route.id)}
                   className={cn(
                     "rounded-[1.4rem] bg-card p-4 text-left card-lift",
-                    recommended && "ring-2 ring-gold bg-primary text-primary-foreground",
-                    !recommended && route.id === chosen?.id && "ring-2 ring-primary",
+                    selected && conditionPick && "ring-2 ring-gold bg-primary text-primary-foreground",
+                    selected && !conditionPick && "ring-2 ring-primary",
                   )}
                 >
                   <div className="flex items-baseline justify-between gap-2">
@@ -342,9 +402,19 @@ export function RoadAssistView() {
                       {route.durationMin} min · {route.distanceKm} km
                     </p>
                   </div>
-                  <p className={cn("mt-1 text-sm", recommended ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                  <p className={cn("mt-1 text-sm", selected && conditionPick ? "text-primary-foreground/80" : "text-muted-foreground")}>
                     {conditionLine(route)}
                   </p>
+                  {extra && (
+                    <p className={cn("mt-1 text-[11px] font-semibold", selected && conditionPick ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                      {extra}
+                    </p>
+                  )}
+                  {route.recommendation && selected && (
+                    <p className={cn("mt-2 text-xs leading-5", selected && conditionPick ? "text-primary-foreground/75" : "text-muted-foreground")}>
+                      {route.recommendation}
+                    </p>
+                  )}
                 </button>
               );
             })}
@@ -511,7 +581,7 @@ export function RoadAssistView() {
 
       {loading && (
         <div className="absolute inset-x-0 top-1/2 z-[450] -translate-y-1/2 text-center">
-          <p className="inline-flex rounded-full bg-card px-4 py-2 text-sm font-bold shadow-lg">Finding safer routes…</p>
+          <p className="inline-flex rounded-full bg-card px-4 py-2 text-sm font-bold shadow-lg">Comparing Accra routes…</p>
         </div>
       )}
 
