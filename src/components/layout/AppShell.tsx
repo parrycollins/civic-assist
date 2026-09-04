@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleUser, Home, Map, Navigation, Plus, Trophy } from "lucide-react";
+import { CircleUser, ClipboardList, Home, Map, Navigation, Plus, Trophy } from "lucide-react";
 import { useCivicStore } from "@/lib/store";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeToggle } from "@/components/ui-kit/ThemeToggle";
@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 const citizenItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/map", label: "Map", icon: Map },
-  { href: "/report", label: "Report", icon: Plus, emphasize: true },
   { href: "/road-assist", label: "Road Assist", icon: Navigation },
+  { href: "/report", label: "Report", icon: Plus, emphasize: true },
+  { href: "/completed", label: "Completed", icon: Trophy },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
 
@@ -23,6 +24,12 @@ const agencyItems = [
   { href: "/completed", label: "Completed", icon: Trophy },
   { href: "/profile", label: "Profile", icon: CircleUser },
 ];
+
+function isNavActive(pathname: string, href: string) {
+  if (href === "/" || href === "/agency") return pathname === href;
+  if (href === "/completed") return pathname.startsWith("/completed") || pathname.startsWith("/agencies");
+  return pathname.startsWith(href);
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -45,17 +52,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="mt-8 grid gap-1.5">
           {(user?.role === "agency"
             ? agencyItems
-            : [
-                ...citizenItems,
-                { href: "/completed", label: "Completed", icon: Trophy },
-                { href: "/my-reports", label: "My Reports", icon: CircleUser },
-              ]
+            : [...citizenItems, { href: "/my-reports", label: "My Reports", icon: ClipboardList }]
           ).map(
             (item) => {
-              const isActive =
-                item.href === "/" || item.href === "/agency"
-                  ? pathname === item.href
-                  : pathname.startsWith(item.href);
+              const isActive = isNavActive(pathname, item.href);
               const Icon = item.icon;
               return (
                 <Link
@@ -110,39 +110,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         {!hideBottomNav && (
-        <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 items-end rounded-[1.7rem] border border-white/50 bg-card/90 px-1 py-2 shadow-[0_16px_40px_-20px_rgb(16_32_24/0.45)] backdrop-blur-xl md:hidden">
-          {citizenItems.map((item) => {
-            const href =
-              user?.role === "agency"
-                ? item.href === "/"
-                  ? "/agency"
-                  : item.href === "/map"
-                    ? "/agency/map"
-                    : item.href === "/road-assist"
-                      ? "/agency/roads"
-                      : item.href
-                : item.href;
-            const isActive =
-              pathname === href || (href !== "/" && href !== "/agency" && pathname.startsWith(href));
+        <nav
+          className={cn(
+            "fixed inset-x-2 bottom-3 z-40 grid items-end rounded-[1.7rem] border border-white/50 bg-card/90 px-0.5 py-2 shadow-[0_16px_40px_-20px_rgb(16_32_24/0.45)] backdrop-blur-xl md:hidden",
+            user?.role === "agency" ? "grid-cols-5" : "grid-cols-6",
+          )}
+        >
+          {(user?.role === "agency" ? agencyItems : citizenItems).map((item) => {
+            const href = item.href;
+            const isActive = isNavActive(pathname, href);
             const Icon = item.icon;
-            if (item.emphasize) {
+            if ("emphasize" in item && item.emphasize) {
               const fabClass =
-                "-mt-7 mx-auto grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_12px_24px_-8px_rgb(13_79_60/0.8)]";
+                "-mt-6 mx-auto grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_12px_24px_-8px_rgb(13_79_60/0.8)]";
               if (isActive) {
                 return (
                   <span key={item.href} aria-current="page" aria-label="Report an issue" className={fabClass}>
-                    <Icon className="size-6" />
+                    <Icon className="size-5" />
                   </span>
                 );
               }
               return (
                 <Link key={item.href} href={href} prefetch={false} aria-label="Report an issue" className={fabClass}>
-                  <Icon className="size-6" />
+                  <Icon className="size-5" />
                 </Link>
               );
             }
             const tabClass = cn(
-              "flex flex-col items-center gap-1 py-1 text-[10px] font-semibold",
+              "flex flex-col items-center gap-0.5 px-0.5 py-1 text-center text-[9px] leading-tight font-semibold sm:text-[10px]",
               isActive ? "text-primary" : "text-muted-foreground",
             );
             if (isActive) {

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getAgency } from "@/data/agencies";
 import { CivicStory, Journey } from "@/components/completed/Journey";
+import { ProjectTimeline } from "@/components/completed/ProjectTimeline";
+import { VerificationBadge } from "@/components/completed/VerificationBadge";
 import { EvidenceGallery } from "@/components/issues/EvidenceGallery";
 import { IssueTimeline } from "@/components/issues/IssueTimeline";
 import { ErrorState } from "@/components/ui-kit/ErrorState";
@@ -13,7 +15,6 @@ import {
   isCompletedWork,
   publicReporterLabel,
   resolutionLabel,
-  verificationLabel,
   videosFor,
   workStartedAt,
 } from "@/lib/completed";
@@ -29,7 +30,12 @@ export function ProjectPage() {
   if (!issue) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16">
-        <ErrorState title="Project not found" body="That completed-work record is not in this CivicGH archive." actionHref="/completed" actionLabel="Back to completed work" />
+        <ErrorState
+          title="Couldn't load completed works"
+          body="That completed-work record is not in this CivicGH archive."
+          actionHref="/completed"
+          actionLabel="Retry from completed works"
+        />
       </div>
     );
   }
@@ -40,21 +46,20 @@ export function ProjectPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-      <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground uppercase">{issue.id}</p>
-      <h1 className="font-heading text-3xl font-extrabold">
-        {CATEGORY_META[issue.category].icon} {issue.title}
-      </h1>
-      <p className="text-sm text-muted-foreground">{issue.location.publicLabel}</p>
+      <p className="text-xs font-bold tracking-[0.16em] text-gold uppercase">
+        {CATEGORY_META[issue.category].label}
+      </p>
+      <h1 className="font-heading text-3xl font-extrabold">{issue.title}</h1>
+      <p className="text-sm text-muted-foreground">📍 {issue.location.publicLabel}</p>
+      <VerificationBadge issue={issue} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Meta label="Location" value={issue.location.area} />
-        <Meta label="Reported" value={formatDate(issue.reportedAt)} />
-        <Meta label="Work started" value={started ? formatDate(started) : "Not recorded"} />
-        <Meta label="Completed" value={formatDate(completedAt(issue))} />
         <Meta label="Reported by" value={publicReporterLabel(issue, user)} />
-        <Meta label="Completed by" value={agency?.name ?? "Agency"} />
+        <Meta label="Responsible agency" value={agency?.name ?? "Agency"} />
+        <Meta label="Completed" value={formatDate(completedAt(issue))} />
+        <Meta label="Work started" value={started ? formatDate(started) : "Not recorded"} />
         <Meta label="Resolution time" value={resolutionLabel(issue)} />
-        <Meta label="Citizen verification" value={verificationLabel(issue)} />
       </div>
 
       {!isCompletedWork(issue) && (
@@ -63,10 +68,11 @@ export function ProjectPage() {
         </p>
       )}
 
+      <ProjectTimeline issue={issue} />
       <Journey issue={issue} />
 
       <section>
-        <h2 className="mb-3 font-heading text-xl font-extrabold">Problem → Work → Result</h2>
+        <h2 className="mb-1 font-heading text-xl font-extrabold">Project Evidence</h2>
         <p className="mb-3 text-sm text-muted-foreground">
           The original citizen photo stays on the record. Agencies can only append evidence.
         </p>
@@ -102,7 +108,7 @@ export function ProjectPage() {
       <CivicStory issue={issue} />
 
       <section>
-        <h2 className="mb-3 font-heading text-xl font-extrabold">Project timeline</h2>
+        <h2 className="mb-3 font-heading text-xl font-extrabold">Full complaint history</h2>
         <IssueTimeline events={issue.timeline} />
       </section>
 
@@ -123,7 +129,7 @@ export function ProjectPage() {
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.3rem] bg-card px-4 py-3 card-lift">
+    <div className="card-lift rounded-[1.3rem] bg-card px-4 py-3">
       <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{label}</p>
       <p className="mt-1 text-sm font-semibold">{value}</p>
     </div>

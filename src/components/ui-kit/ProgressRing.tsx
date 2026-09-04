@@ -26,6 +26,7 @@ export function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.8s ease" }}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">

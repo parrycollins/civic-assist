@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { yearArchive } from "@/lib/completed";
+import { olderCompletedCount, yearArchive } from "@/lib/completed";
 import { useCivicStore } from "@/lib/store";
 
 export function HistoryPage() {
   const issues = useCivicStore((s) => s.issues);
   const years = yearArchive(issues);
+  const older = olderCompletedCount(issues);
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-6">
@@ -20,7 +21,7 @@ export function HistoryPage() {
       <ul className="grid gap-3">
         {years.map((item) => (
           <li key={item.year}>
-            <Link href={`/completed?year=${item.year}`} className="card-lift flex items-end justify-between rounded-[1.5rem] bg-card p-5">
+            <Link href={`/completed?year=${item.year}`} className="card-lift pressable flex items-end justify-between rounded-[1.5rem] bg-card p-5">
               <span>
                 <span className="block font-heading text-3xl font-extrabold">{item.year}</span>
                 <span className="text-sm text-muted-foreground">Tap to explore this year</span>
@@ -32,6 +33,18 @@ export function HistoryPage() {
             </Link>
           </li>
         ))}
+        <li>
+          <Link href="/completed?year=older" className="card-lift pressable flex items-end justify-between rounded-[1.5rem] bg-card p-5">
+            <span>
+              <span className="block font-heading text-3xl font-extrabold">Older</span>
+              <span className="text-sm text-muted-foreground">Before 2023</span>
+            </span>
+            <span className="text-right">
+              <span className="block font-heading text-2xl font-extrabold">{older}</span>
+              <span className="text-xs text-muted-foreground">projects completed</span>
+            </span>
+          </Link>
+        </li>
       </ul>
     </div>
   );
