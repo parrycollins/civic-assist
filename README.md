@@ -55,3 +55,7 @@ Open [http://localhost:43217](http://localhost:43217).
 - Privacy: no public phone/email; map pins use approximated public locations
 
 Data for this MVP lives in the browser. Do not invent completed-work counts or extra years. If a year has no records, it is 0.
+
+## Deploy on Vercel
+
+Import the GitHub repo. Leave **Root Directory** empty (the Next.js app at the repo root). Do not set Root Directory to `mobile/` — that Expo folder is the phone wrapper only.
