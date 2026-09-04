@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CivicGH
 
 CivicGH is a civic accountability app for Ghana. It connects three systems on one geographic record:
@@ -47,3 +48,6 @@ Data is stored in the browser for this MVP (Zustand + localStorage). Reset it fr
 The native citizen app lives in **`android/`**. Open that folder in Android Studio (File → Open), sync SDK 35, and run on an API 26+ device or emulator.
 
 See [ANDROID.md](ANDROID.md) for the project layout, demo logins, and what is (and is not) in this first native slice. The web app above remains the full reference for Road Assist and agency tools.
+=======
+# civic-assist
+>>>>>>> origin/main
