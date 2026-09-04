@@ -60,7 +60,7 @@ export function CivicStory({ issue }: { issue: Issue }) {
   const beats = [
     { title: "The Problem", body: issue.description, photo: before },
     { title: "The Report", body: `${issue.reporterCount} citizen report${issue.reporterCount === 1 ? "" : "s"} opened this record.`, photo: before },
-    { title: "The Response", body: issue.timeline.find((e) => e.status === "assigned" || e.status === "agency_accepted")?.label ?? "The responsible agency was notified.", photo: during },
+    { title: "The Response", body: issue.timeline.find((e) => e.status === "assigned" || e.status === "agency_accepted" || e.status === "under_review")?.label ?? (issue.forwardedToAgency ? "The responsible agency was notified." : "CivicGH Cloud is still gathering nearby reports."), photo: during },
     { title: "The Work", body: during?.description ?? "Crews recorded progress while the work was underway.", photo: during },
     { title: "The Result", body: after?.description ?? "Completed work evidence is kept with the original report.", photo: after },
     {

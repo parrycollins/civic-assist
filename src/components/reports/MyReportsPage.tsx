@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCivicStore } from "@/lib/store";
 import { IssuePhoto } from "@/components/issues/IssuePhoto";
 import { StatusPill } from "@/components/map/IssueSheet";
+import { GatheringProgress } from "@/components/report/GatheringProgress";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { formatDate } from "@/lib/format";
 
@@ -52,6 +53,9 @@ export function MyReportsPage() {
                     {issue.id} · {formatDate(issue.reportedAt)}
                   </p>
                   <StatusPill status={issue.status} className="mt-2" />
+                  <div className="mt-2">
+                    <GatheringProgress issue={issue} compact />
+                  </div>
                 </div>
               </Link>
             </li>

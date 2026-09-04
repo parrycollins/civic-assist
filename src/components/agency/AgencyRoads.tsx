@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ROAD_SEGMENTS } from "@/data/roads";
 import { useCivicStore } from "@/lib/store";
+import { isForwardedToAgency } from "@/lib/dispatch";
 import { isOverdue, resolutionDays } from "@/lib/performance";
 import { roadConditionScore } from "@/lib/scoring";
 import { StatusPill } from "@/components/map/IssueSheet";
@@ -12,7 +13,12 @@ export function AgencyRoads() {
   const user = useCivicStore((s) => s.user);
   const issues = useCivicStore((s) => s.issues);
   const agencyId = user?.agencyId;
-  const mine = issues.filter((i) => i.isRoadRelated && (!agencyId || i.agencyId === agencyId || ["dur", "gha"].includes(agencyId)));
+  const mine = issues.filter(
+    (i) =>
+      i.isRoadRelated &&
+      isForwardedToAgency(i) &&
+      (!agencyId || i.agencyId === agencyId || ["dur", "gha"].includes(agencyId)),
+  );
   const overdue = mine.filter((issue) => isOverdue(issue));
   const high = mine.filter((i) => i.severity === "high" || i.severity === "critical");
   const days = mine.map(resolutionDays).filter((d): d is number => d !== null);

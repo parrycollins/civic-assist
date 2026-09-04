@@ -1,4 +1,5 @@
 import { AREAS } from "./areas";
+import { hydrateDispatch } from "@/lib/dispatch";
 import type {
   Category,
   Evidence,
@@ -229,9 +230,9 @@ function featuredIssues(): Issue[] {
     },
     reportedAt: iso(2026, 8, 31, 20),
     agencyId: "ecg",
-    status: "under_review",
+    status: "reported",
     reporterCount: 4,
-    lastUpdateAt: iso(2026, 9, 1, 9),
+    lastUpdateAt: iso(2026, 8, 31, 20),
     isRoadRelated: true,
     roadHazard: "traffic_light",
     severity: "medium",
@@ -243,7 +244,6 @@ function featuredIssues(): Issue[] {
     privacyOffset: { lat: 0, lng: 0 },
     timeline: [
       event("l1", "reported", "Reported", iso(2026, 8, 31, 20), "4 citizens", "citizen"),
-      event("l2", "under_review", "Under review", iso(2026, 9, 1, 9), "Electricity Company of Ghana", "agency"),
     ],
     evidence: [evidence("CGH-2026-0004", "before", "light-before", iso(2026, 8, 31, 20), "Citizen reports")],
   };
@@ -624,13 +624,14 @@ function generatedIssues(): Issue[] {
   for (const cluster of clusters) {
     for (let i = 0; i < cluster.n; i++) {
       const tpl = pick(TEMPLATES);
-      const status = pick(STATUSES);
+      const reporters = 1 + Math.floor(rand() * 16);
+      const forwarded = reporters >= 5;
+      const status = forwarded ? pick(STATUSES) : "reported";
       const day = 3 + Math.floor(rand() * 28);
       const reportedAt = iso(2026, 8, Math.min(31, day), 7 + Math.floor(rand() * 12));
       const id = `CGH-2026-${String(n).padStart(4, "0")}`;
       const agencyId = tpl.agencyHint && rand() > 0.35 ? tpl.agencyHint : AREA_AGENCY[cluster.area] ?? "ama";
       const location = loc(cluster.area, cluster.street, 0.01);
-      const reporters = 1 + Math.floor(rand() * 16);
       const last = new Date(new Date(reportedAt).getTime() + Math.floor(rand() * 6) * 86400000).toISOString();
       const ev: Evidence[] = [
         evidence(id, "before", tpl.photoKey, reportedAt, "Citizen reports"),
@@ -688,4 +689,4 @@ function generatedIssues(): Issue[] {
   return issues;
 }
 
-export const SEED_ISSUES: Issue[] = [...featuredIssues(), ...generatedIssues()];
+export const SEED_ISSUES: Issue[] = [...featuredIssues(), ...generatedIssues()].map(hydrateDispatch);

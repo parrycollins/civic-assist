@@ -3,7 +3,7 @@ import type { IssueStatus, TimelineEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const STAGES: { id: IssueStatus; label: string; description: string }[] = [
-  { id: "reported", label: "Reported", description: "The community flagged this problem." },
+  { id: "reported", label: "Reported", description: "Stored in CivicGH Cloud until five nearby complaints are reached." },
   { id: "assigned", label: "Assigned", description: "An agency has accepted the work." },
   { id: "in_progress", label: "Work in progress", description: "Crews are on site or scheduled." },
   { id: "resolved", label: "Resolved", description: "The agency marked the work complete." },

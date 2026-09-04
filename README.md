@@ -54,8 +54,9 @@ Open [http://localhost:43217](http://localhost:43217).
 - Road Assist
 - Privacy: no public phone/email; map pins use approximated public locations
 - **Completed Works** — a public civic achievement archive in the bottom navigation (Home · Map · Road Assist · Report · Completed · Profile)
+- **CivicGH Cloud dispatch** — every report is stored in the app cloud. Reports of the same problem near the same location are counted together. After you file, CivicGH tells you if you are the 1st, 2nd, 3rd… person to report it. The responsible agency is notified only when **5** nearby complaints are reached.
 
-Data for this MVP lives in the browser. Do not invent completed-work counts or extra years. If a year has no records, it is 0.
+Data for this MVP lives in the browser (and a CivicGH Cloud ledger at `/api/cloud/complaints`). Do not invent completed-work counts or extra years. If a year has no records, it is 0.
 
 ## Deploy on Vercel
 

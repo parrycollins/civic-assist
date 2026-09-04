@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, ChevronLeft, MapPin } from "lucide-react";
+import { Camera, ChevronLeft, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { AGENCIES } from "@/data/agencies";
 import { CategoryCard } from "@/components/ui-kit/CategoryCard";
 import { CATEGORY_META } from "@/lib/constants";
 import { approximateLocation } from "@/lib/geo";
 import { useCivicStore } from "@/lib/store";
+import { ReportRankDialog } from "@/components/report/ReportRankDialog";
+import type { DispatchResult } from "@/lib/dispatch";
 import type { Category, RoadHazard, Severity } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +59,7 @@ export function ReportForm({
   const [photo, setPhoto] = useState<string | undefined>();
   const [coords, setCoords] = useState({ lat: 5.6037, lng: -0.187 });
   const [locLabel, setLocLabel] = useState("Accra (approximate)");
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<DispatchResult | null>(null);
 
   const choice = CHOICES.find((c) => c.id === choiceId) ?? CHOICES[0];
   const road = useMemo(
@@ -91,7 +93,7 @@ export function ReportForm({
     const finalTitle = title.trim() || `${choice.label} reported in the community`;
     const finalDescription =
       description.trim() || `A ${choice.label.toLowerCase()} problem needs attention. Exact private location is not published.`;
-    const issue = addIssue({
+    const result = addIssue({
       title: finalTitle,
       category: choice.category,
       description: finalDescription,
@@ -104,24 +106,21 @@ export function ReportForm({
       severity,
       agencyId,
     });
-    setDone(true);
-    toast.success("Report submitted. The map will update immediately.");
-    window.setTimeout(() => router.push(`/issues/${issue.id}`), 1400);
+    setDone(result);
   }
 
   if (done) {
     return (
-      <div className="grid min-h-[60vh] place-items-center px-4 text-center">
-        <div>
-          <div className="civic-check mx-auto grid size-20 place-items-center rounded-full bg-primary text-primary-foreground">
-            <Check className="size-10" strokeWidth={3} />
-          </div>
-          <h2 className="mt-5 font-heading text-2xl font-extrabold">Report sent</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Your community can now see this problem. Identity stays off the public map.
-          </p>
-        </div>
-      </div>
+      <ReportRankDialog
+        result={done}
+        onClose={() => {
+          setDone(null);
+          setStep(0);
+          setTitle("");
+          setDescription("");
+          setPhoto(undefined);
+        }}
+      />
     );
   }
 
@@ -214,7 +213,7 @@ export function ReportForm({
         <section className="animate-civic-in">
           <h1 className="font-heading text-3xl font-extrabold">Location</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            CivicGH publishes a street / area pin, never your exact private location.
+            CivicGH publishes a street / area pin, never your exact private location. Nearby reports of the same problem (about 300 metres) are counted together.
           </p>
           <div className="card-lift relative mt-6 overflow-hidden rounded-[1.8rem] bg-card">
             <div className="h-48 bg-[radial-gradient(circle_at_30%_40%,rgb(13_79_60/0.18),transparent_42%),linear-gradient(180deg,#d7e3d6,#c5d4c4)]">
@@ -328,7 +327,7 @@ export function ReportForm({
         <section className="animate-civic-in">
           <h1 className="font-heading text-3xl font-extrabold">Submit</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Review the public details. Your name, email and exact GPS stay private.
+            CivicGH stores this in the cloud. The agency is notified only after five nearby reports of the same problem.
           </p>
           <div className="card-lift mt-6 space-y-3 rounded-[1.6rem] bg-card p-5">
             <p className="text-sm font-medium text-muted-foreground">
@@ -345,7 +344,7 @@ export function ReportForm({
             onClick={submit}
             className="pressable relative z-10 mt-6 mb-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-bold text-primary-foreground"
           >
-            Submit report
+            Submit to CivicGH Cloud
           </button>
         </section>
       )}

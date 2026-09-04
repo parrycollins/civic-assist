@@ -6,6 +6,7 @@ import { Layers, LocateFixed, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { findPlaces } from "@/data/areas";
 import { HAZARD_META } from "@/lib/constants";
+import { ordinal } from "@/lib/dispatch";
 import { approximateLocation } from "@/lib/geo";
 import { planTrip } from "@/lib/routing";
 import { pickRecommendedRoute } from "@/lib/scoring";
@@ -180,7 +181,7 @@ export function RoadAssistView() {
     }
     const point = approximateLocation(origin);
     const meta = HAZARD_META[hazard];
-    addIssue({
+    const result = addIssue({
       title: `${meta.label} reported while travelling`,
       category: meta.category,
       description: `Quick Road Assist report: ${meta.label} near the current approximate travel area.`,
@@ -191,7 +192,11 @@ export function RoadAssistView() {
       severity: hazard === "flooding" || hazard === "closure" ? "high" : "medium",
     });
     setQuickOpen(false);
-    toast.success("Road problem reported. Other travellers will see it after confirmation.");
+    toast.success(
+      result.justForwarded
+        ? `You're the ${ordinal(result.rank)} to report this. CivicGH forwarded it to the agency.`
+        : `You're the ${ordinal(result.rank)} to report this nearby. ${result.count} of ${result.threshold} in CivicGH Cloud.`,
+    );
   }
 
   const selected = issues.find((i) => i.id === selectedIssue) ?? null;

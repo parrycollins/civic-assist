@@ -108,7 +108,7 @@ export function CivicMapCanvas({
             if (group.length === 1) {
               const issue = group[0];
               const marker = L.marker([issue.location.lat, issue.location.lng], {
-                icon: icons.issueDivIcon(issue.status, issue.title, issue.category),
+                icon: icons.issueDivIcon(issue.status, issue.title, issue.category, issue),
                 title: `${issue.title} (${issue.status})`,
               });
               marker.on("click", (event) => {

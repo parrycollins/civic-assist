@@ -7,6 +7,12 @@ import { SEED_ISSUES } from "@/data/issues";
 import { DEMO_ACCOUNTS, SEED_VERSION } from "@/lib/constants";
 import { approximateLocation } from "@/lib/geo";
 import { areaForPoint } from "@/data/areas";
+import {
+  FORWARD_THRESHOLD,
+  findLocationCluster,
+  locationClusterKey,
+  type DispatchResult,
+} from "@/lib/dispatch";
 import type {
   AppNotification,
   Category,
@@ -33,7 +39,7 @@ export interface CivicState {
   login: (email: string, password: string) => string | null;
   register: (name: string, email: string, password: string, area?: string) => string | null;
   logout: () => void;
-  addIssue: (input: NewIssueInput) => Issue;
+  addIssue: (input: NewIssueInput) => DispatchResult;
   updateIssueStatus: (
     id: string,
     status: IssueStatus,
@@ -105,6 +111,31 @@ function defaultAgency(category: Category, municipality: string) {
   return match?.id ?? "ama";
 }
 
+function syncCivicCloud(result: DispatchResult, lat: number, lng: number) {
+  if (typeof window === "undefined") return;
+  void fetch("/api/cloud/complaints", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: `${result.issue.id}-c${result.rank}-${Date.now()}`,
+      issueId: result.issue.id,
+      category: result.issue.category,
+      roadHazard: result.issue.roadHazard,
+      lat,
+      lng,
+      clusterKey: result.issue.clusterKey ?? result.issue.id,
+      rank: result.rank,
+      count: result.count,
+      forwarded: result.forwarded,
+      justForwarded: result.justForwarded,
+      joinedExisting: result.joinedExisting,
+      createdAt: new Date().toISOString(),
+    }),
+  }).catch(() => {
+    /* Cloud copy is best-effort; the local CivicGH store remains the working record. */
+  });
+}
+
 export const useCivicStore = create<CivicState>()(
   persist(
     (set, get) => ({
@@ -163,10 +194,126 @@ export const useCivicStore = create<CivicState>()(
       addIssue: (input) => {
         const approx = approximateLocation({ lat: input.lat, lng: input.lng });
         const area = areaForPoint(approx.lat, approx.lng);
-        const id = `CGH-2026-${String(get().issues.length + 1).padStart(4, "0")}`;
         const now = new Date().toISOString();
+        const user = get().user;
         const agencyId = input.agencyId ?? defaultAgency(input.category, area.municipality);
-        const agency = AGENCIES.find((a) => a.id === agencyId);
+        const clusterKey = locationClusterKey(input.category, approx, input.roadHazard);
+        const existing = findLocationCluster(get().issues, {
+          category: input.category,
+          lat: approx.lat,
+          lng: approx.lng,
+          roadHazard: input.roadHazard,
+        });
+        const responsibleId = existing?.agencyId ?? agencyId;
+        const agency = AGENCIES.find((a) => a.id === responsibleId);
+
+        if (existing) {
+          const alreadyReported = Boolean(user?.id && existing.contributorIds?.includes(user.id));
+          if (alreadyReported) {
+            const result: DispatchResult = {
+              issue: existing,
+              rank: Math.max(1, existing.contributorIds?.indexOf(user!.id) ?? 0) + 1,
+              count: existing.complaintCount ?? existing.reporterCount,
+              threshold: FORWARD_THRESHOLD,
+              forwarded: Boolean(existing.forwardedToAgency),
+              justForwarded: false,
+              joinedExisting: true,
+              alreadyReported: true,
+            };
+            set((s) => ({
+              myIssueIds: s.myIssueIds.includes(existing.id) ? s.myIssueIds : [existing.id, ...s.myIssueIds],
+            }));
+            syncCivicCloud(result, approx.lat, approx.lng);
+            return result;
+          }
+
+          const count = (existing.complaintCount ?? existing.reporterCount) + 1;
+          const wasForwarded = Boolean(existing.forwardedToAgency);
+          const justForwarded = !wasForwarded && count >= FORWARD_THRESHOLD;
+          const forwarded = wasForwarded || justForwarded;
+          const extraEvidence: Evidence | undefined = input.imageDataUrl
+            ? {
+                id: `${existing.id}-before-${now}`,
+                complaintId: existing.id,
+                stage: "before",
+                photoKey: input.photoKey ?? `${input.category}-before`,
+                imageDataUrl: input.imageDataUrl,
+                timestamp: now,
+                uploadedBy: user?.name ?? "Citizen",
+                uploadedByRole: "citizen",
+                description: "Additional citizen report",
+              }
+            : undefined;
+          const updated: Issue = {
+            ...existing,
+            lastUpdateAt: now,
+            reporterCount: count,
+            complaintCount: count,
+            supportingReports: existing.supportingReports + 1,
+            affectedCount: (existing.affectedCount ?? existing.reporterCount) + 1,
+            confidence: Math.min(0.98, existing.confidence + 0.08),
+            clusterKey: existing.clusterKey ?? clusterKey,
+            forwardedToAgency: forwarded,
+            forwardedAt: justForwarded ? now : existing.forwardedAt,
+            contributorIds: user?.id
+              ? Array.from(new Set([...(existing.contributorIds ?? []), user.id]))
+              : existing.contributorIds ?? [],
+            status: justForwarded && existing.status === "reported" ? "under_review" : existing.status,
+            timeline: [
+              ...existing.timeline,
+              {
+                id: `${existing.id}-c-${now}`,
+                status: "reported",
+                label: `Citizen report ${count} of ${FORWARD_THRESHOLD} stored in CivicGH Cloud`,
+                timestamp: now,
+                actor: user?.recognition === "named" ? user.name : "CivicGH Citizen",
+                actorRole: "citizen",
+              },
+              ...(justForwarded
+                ? [
+                    {
+                      id: `${existing.id}-fwd-${now}`,
+                      status: "under_review" as const,
+                      label: `Forwarded to ${agency?.name ?? "the responsible agency"} after ${FORWARD_THRESHOLD} nearby reports`,
+                      timestamp: now,
+                      actor: "CivicGH Cloud",
+                      actorRole: "system" as const,
+                    },
+                  ]
+                : []),
+            ],
+            evidence: extraEvidence ? [...existing.evidence, extraEvidence] : existing.evidence,
+          };
+          const result: DispatchResult = {
+            issue: updated,
+            rank: count,
+            count,
+            threshold: FORWARD_THRESHOLD,
+            forwarded,
+            justForwarded,
+            joinedExisting: true,
+            alreadyReported: false,
+          };
+          set((s) => ({
+            issues: s.issues.map((issue) => (issue.id === existing.id ? updated : issue)),
+            myIssueIds: s.myIssueIds.includes(existing.id) ? s.myIssueIds : [existing.id, ...s.myIssueIds],
+            notifications: [
+              notify(
+                justForwarded ? "Forwarded to the agency" : "Report stored in CivicGH Cloud",
+                justForwarded
+                  ? `${agency?.name ?? "The agency"} has been notified. ${count} nearby complaints matched this location.`
+                  : `${count} of ${FORWARD_THRESHOLD} nearby reports. CivicGH will forward this after ${FORWARD_THRESHOLD} complaints.`,
+                existing.id,
+              ),
+              ...s.notifications,
+            ],
+          }));
+          syncCivicCloud(result, approx.lat, approx.lng);
+          return result;
+        }
+
+        const id = `CGH-2026-${String(get().issues.length + 1).padStart(4, "0")}`;
+        const forwarded = 1 >= FORWARD_THRESHOLD;
         const evidence: Evidence[] = [
           {
             id: `${id}-before`,
@@ -175,7 +322,7 @@ export const useCivicStore = create<CivicState>()(
             photoKey: input.photoKey ?? `${input.category}-before`,
             imageDataUrl: input.imageDataUrl,
             timestamp: now,
-            uploadedBy: get().user?.name ?? "Citizen",
+            uploadedBy: user?.name ?? "Citizen",
             uploadedByRole: "citizen",
             description: "Original report",
           },
@@ -194,8 +341,9 @@ export const useCivicStore = create<CivicState>()(
           },
           reportedAt: now,
           agencyId,
-          status: "reported",
+          status: forwarded ? "under_review" : "reported",
           reporterCount: 1,
+          complaintCount: 1,
           lastUpdateAt: now,
           timeline: [
             {
@@ -203,9 +351,21 @@ export const useCivicStore = create<CivicState>()(
               status: "reported",
               label: "Reported",
               timestamp: now,
-              actor: get().user?.name ?? "Citizen",
+              actor: user?.name ?? "Citizen",
               actorRole: "citizen",
             },
+            ...(forwarded
+              ? [
+                  {
+                    id: `${id}-fwd`,
+                    status: "under_review" as const,
+                    label: `Forwarded to ${agency?.name ?? "the responsible agency"} after ${FORWARD_THRESHOLD} nearby reports`,
+                    timestamp: now,
+                    actor: "CivicGH Cloud",
+                    actorRole: "system" as const,
+                  },
+                ]
+              : []),
           ],
           evidence,
           isRoadRelated: Boolean(input.isRoadRelated || input.roadHazard),
@@ -215,24 +375,39 @@ export const useCivicStore = create<CivicState>()(
           denials: 0,
           confidence: 0.35,
           verificationCount: 0,
-          createdById: get().user?.id,
-          reporterVisibility: get().user?.recognition === "named" ? "named" : "anonymous",
-          reporterDisplayName: get().user?.displayName || get().user?.name,
+          createdById: user?.id,
+          reporterVisibility: user?.recognition === "named" ? "named" : "anonymous",
+          reporterDisplayName: user?.displayName || user?.name,
           privacyOffset: { lat: 0, lng: 0 },
+          clusterKey,
+          forwardedToAgency: forwarded,
+          forwardedAt: forwarded ? now : undefined,
+          contributorIds: user?.id ? [user.id] : [],
+        };
+        const result: DispatchResult = {
+          issue,
+          rank: 1,
+          count: 1,
+          threshold: FORWARD_THRESHOLD,
+          forwarded,
+          justForwarded: forwarded,
+          joinedExisting: false,
+          alreadyReported: false,
         };
         set((s) => ({
           issues: [issue, ...s.issues],
           myIssueIds: [id, ...s.myIssueIds],
           notifications: [
             notify(
-              "Report submitted",
-              `${agency?.name ?? "The responsible agency"} has been notified about ${input.title}.`,
+              "Report stored in CivicGH Cloud",
+              `You are the first to report this at ${area.name}. CivicGH will forward it to ${agency?.name ?? "the agency"} after ${FORWARD_THRESHOLD} nearby complaints.`,
               id,
             ),
             ...s.notifications,
           ],
         }));
-        return issue;
+        syncCivicCloud(result, approx.lat, approx.lng);
+        return result;
       },
       updateIssueStatus: (id, status, note, extra) => {
         const user = get().user;

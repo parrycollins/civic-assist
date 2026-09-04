@@ -1,7 +1,7 @@
 import type { Category, IssueStatus, MapLayerMode, RoadHazard, Severity } from "./types";
 
 export const APP_NAME = "CivicGH";
-export const SEED_VERSION = 1;
+export const SEED_VERSION = 2;
 export const ACCRA_CENTER = { lat: 5.6037, lng: -0.187 };
 export const DEFAULT_ZOOM = 12;
 

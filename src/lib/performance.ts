@@ -1,6 +1,7 @@
 import { differenceInDays, parseISO } from "date-fns";
 import type { AgencyPerformance, Issue } from "./types";
 import { STATUS_META } from "./constants";
+import { isForwardedToAgency } from "./dispatch";
 
 export function isOverdue(issue: Issue, now = new Date("2026-09-03T12:00:00Z")) {
   if (!issue.dueAt) return false;
@@ -16,7 +17,7 @@ export function resolutionDays(issue: Issue) {
 }
 
 export function agencyPerformance(issues: Issue[], agencyId: string): AgencyPerformance {
-  const mine = issues.filter((i) => i.agencyId === agencyId);
+  const mine = issues.filter((i) => i.agencyId === agencyId && isForwardedToAgency(i));
   const resolved = mine.filter((i) => STATUS_META[i.status].layer === "completed");
   const days = resolved.map(resolutionDays).filter((d): d is number => d !== null);
   const avg = days.length ? days.reduce((a, b) => a + b, 0) / days.length : 0;

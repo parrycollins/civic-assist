@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { findPlaces } from "@/data/areas";
 import { CATEGORY_META } from "@/lib/constants";
+import { agencyQueue } from "@/lib/dispatch";
 import { DEFAULT_FILTERS, filterIssues } from "@/lib/filters";
 import { approximateLocation } from "@/lib/geo";
 import { useCivicStore } from "@/lib/store";
@@ -36,7 +37,7 @@ export function CivicMapScreen({
   const [locating, setLocating] = useState(false);
 
   const scoped = useMemo(() => {
-    const base = mode === "agency" && agencyId ? issues.filter((i) => i.agencyId === agencyId) : issues;
+    const base = mode === "agency" && agencyId ? agencyQueue(issues, agencyId) : issues;
     return filterIssues(base, filters, userApprox ?? undefined);
   }, [issues, filters, userApprox, mode, agencyId]);
 

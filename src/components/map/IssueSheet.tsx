@@ -7,6 +7,7 @@ import { CATEGORY_META, STATUS_META } from "@/lib/constants";
 import { fromNow } from "@/lib/format";
 import { getAgency } from "@/data/agencies";
 import { resolutionDays } from "@/lib/performance";
+import { GatheringProgress } from "@/components/report/GatheringProgress";
 import type { Issue } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -95,6 +96,7 @@ export function IssueSheet({
             {STATUS_META[issue.status].layer === "completed" ? "View Work" : "View Details"}
           </Link>
           {agencyActions}
+          <GatheringProgress issue={issue} compact className="mt-1" />
         </div>
       </aside>
     </div>

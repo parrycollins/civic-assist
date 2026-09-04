@@ -12,7 +12,9 @@ import { IssueTimeline } from "@/components/issues/IssueTimeline";
 import { StatusTrack } from "@/components/issues/StatusTrack";
 import { Journey } from "@/components/completed/Journey";
 import { StatusPill } from "@/components/map/IssueSheet";
+import { GatheringProgress } from "@/components/report/GatheringProgress";
 import { publicReporterLabel, verificationLabel } from "@/lib/completed";
+import { isForwardedToAgency } from "@/lib/dispatch";
 import { ErrorState } from "@/components/ui-kit/ErrorState";
 import { CATEGORY_META, STATUS_META } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
@@ -63,7 +65,7 @@ export function IssueDetails() {
   const agency = getAgency(issue.agencyId);
   const road = issue.roadSegmentId ? getRoadSegment(issue.roadSegmentId) : undefined;
   const days = resolutionDays(issue);
-  const canAgency = user?.role === "agency" && user.agencyId === issue.agencyId;
+  const canAgency = user?.role === "agency" && user.agencyId === issue.agencyId && isForwardedToAgency(issue);
   const completed = STATUS_META[issue.status].layer === "completed";
 
   return (
@@ -103,6 +105,14 @@ export function IssueDetails() {
         />
         {isOverdue(issue) && <Meta label="Due date" value="Overdue against the agency due date" />}
       </div>
+
+      <GatheringProgress issue={issue} />
+
+      {user?.role === "agency" && !isForwardedToAgency(issue) && (
+        <p className="rounded-[1.3rem] bg-secondary px-4 py-3 text-sm leading-6">
+          This case is still in CivicGH Cloud. It will appear in your agency queue after five location-matched citizen reports.
+        </p>
+      )}
 
       {issue.status === "resolved" && (
         <p className="rounded-[1.3rem] bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">

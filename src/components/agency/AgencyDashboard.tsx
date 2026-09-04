@@ -2,13 +2,8 @@
 
 import Link from "next/link";
 import { useCivicStore } from "@/lib/store";
-import {
-  agencyPerformance,
-  categoryBreakdown,
-  isOverdue,
-  monthlyTrend,
-  performanceBand,
-} from "@/lib/performance";
+import { agencyQueue } from "@/lib/dispatch";
+import { agencyPerformance, categoryBreakdown, isOverdue, monthlyTrend, performanceBand } from "@/lib/performance";
 import { getAgency } from "@/data/agencies";
 import { StatusPill } from "@/components/map/IssueSheet";
 import { ProgressRing } from "@/components/ui-kit/ProgressRing";
@@ -20,7 +15,7 @@ export function AgencyDashboard() {
   const user = useCivicStore((s) => s.user);
   const issues = useCivicStore((s) => s.issues);
   const agencyId = user?.agencyId ?? "ama";
-  const mine = issues.filter((i) => i.agencyId === agencyId);
+  const mine = agencyQueue(issues, agencyId);
   const stats = agencyPerformance(issues, agencyId);
   const agency = getAgency(agencyId);
   const overdue = mine.filter((issue) => isOverdue(issue));
@@ -36,7 +31,7 @@ export function AgencyDashboard() {
         <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground uppercase">Agency workbench</p>
         <h1 className="mt-1 font-heading text-3xl font-extrabold">{agency?.name}</h1>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          Complaints assigned to your agency, with the same map and evidence trail citizens see.
+          Complaints forwarded to your agency after five location-matched citizen reports in CivicGH Cloud.
         </p>
       </div>
 
@@ -146,7 +141,13 @@ export function AgencyDashboard() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-heading text-xl font-bold">Assigned queue</h2>
+        <h2 className="mb-3 font-heading text-xl font-bold">Forwarded queue</h2>
+        {mine.length === 0 ? (
+          <EmptyState
+            title="No forwarded cases yet"
+            body="CivicGH Cloud holds citizen reports until five people flag the same problem nearby. Those cases then appear here."
+          />
+        ) : (
         <ul className="grid gap-2">
           {mine.slice(0, 12).map((issue) => (
             <li key={issue.id}>
@@ -163,6 +164,7 @@ export function AgencyDashboard() {
             </li>
           ))}
         </ul>
+        )}
       </section>
     </div>
   );

@@ -116,6 +116,14 @@ export interface Issue {
   reporterDisplayName?: string;
   /** Offset applied so public pins are not exact private GPS. */
   privacyOffset: GeoPoint;
+  /** Location cluster used by CivicGH Cloud before agency dispatch. */
+  clusterKey?: string;
+  /** Count of location-matched citizen complaints in the cloud. */
+  complaintCount?: number;
+  /** True only after the 5-complaint threshold is reached (or work already happened). */
+  forwardedToAgency?: boolean;
+  forwardedAt?: string;
+  contributorIds?: string[];
 }
 
 export interface Agency {
