@@ -5,11 +5,11 @@ import { colors } from "@/lib/theme";
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: "Not found" }} />
+      <Stack.Screen options={{ title: "Not found", headerShown: true }} />
       <View style={styles.page}>
         <Text style={styles.title}>This screen does not exist.</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go home</Text>
+          <Text style={styles.linkText}>Open CivicGH</Text>
         </Link>
       </View>
     </>

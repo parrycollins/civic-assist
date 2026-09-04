@@ -8,9 +8,18 @@ CivicGH is a civic accountability app for Ghana. It connects three systems on on
 
 The map is a visual history of community problems and public-service work, not only a pinboard of complaints.
 
-## Phone app (Expo)
+## Phone (Expo Go)
 
-You do **not** need Android Studio. The citizen app is in **`mobile/`**.
+This is the **same CivicGH** as the website, opened in Expo Go. You do not need Android Studio.
+
+**Terminal 1**
+
+```bash
+npm install
+npm run dev
+```
+
+**Terminal 2**
 
 ```bash
 cd mobile
@@ -18,16 +27,16 @@ npm install
 npx expo start
 ```
 
-Install [Expo Go](https://expo.dev/go) on your phone and scan the QR code. Details: [EXPO.md](EXPO.md).
+Install [Expo Go](https://expo.dev/go) and scan the QR code. Phone and computer must be on the same Wi‑Fi. Details: [EXPO.md](EXPO.md).
 
-## Web app
+## Browser
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:43217](http://localhost:43217). This is the full product, including Road Assist and agency tools.
+Open [http://localhost:43217](http://localhost:43217).
 
 ## Demo accounts
 
@@ -42,7 +51,7 @@ Open [http://localhost:43217](http://localhost:43217). This is the full product,
 - Full-screen interactive civic map of Greater Accra
 - Issue cards and a complaint history with before / during / after evidence that is appended, never overwritten
 - Citizen verification and dispute
-- Road Assist on the web app
+- Road Assist
 - Privacy: no public phone/email; map pins use approximated public locations
 
-Data for this MVP lives on the device / in the browser. Do not invent completed-work counts or extra years. If a year has no records, it is 0.
+Data for this MVP lives in the browser. Do not invent completed-work counts or extra years. If a year has no records, it is 0.
