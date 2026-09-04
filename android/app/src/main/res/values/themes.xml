@@ -1,6 +1,0 @@
-<resources>
-    <style name="Theme.CivicGH" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">#0D4F3C</item>
-        <item name="android:navigationBarColor">#F4F1EA</item>
-    </style>
-</resources>

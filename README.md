@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # CivicGH
 
 CivicGH is a civic accountability app for Ghana. It connects three systems on one geographic record:
@@ -9,18 +8,26 @@ CivicGH is a civic accountability app for Ghana. It connects three systems on on
 
 The map is a visual history of community problems and public-service work, not only a pinboard of complaints.
 
-The interface uses a Ghana-inspired CivicGH visual system: deep green, spare gold, Plus Jakarta Sans, and a shared `src/theme` token set. Dark mode is available from Profile.
+## Phone app (Expo)
 
-The **Completed Work** archive (`/completed`) is a public history of agency-completed and citizen-verified records, with before / during / after evidence, optional agency videos, recognition settings, and civic-impact totals counted from the live dataset — not invented figures.
+You do **not** need Android Studio. The citizen app is in **`mobile/`**.
 
-## Run locally
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+Install [Expo Go](https://expo.dev/go) on your phone and scan the QR code. Details: [EXPO.md](EXPO.md).
+
+## Web app
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:43217](http://localhost:43217).
+Open [http://localhost:43217](http://localhost:43217). This is the full product, including Road Assist and agency tools.
 
 ## Demo accounts
 
@@ -32,22 +39,10 @@ Open [http://localhost:43217](http://localhost:43217).
 
 ## What this MVP includes
 
-- Full-screen interactive civic map of Greater Accra with clustering, filters, search, Near Me (approximate location only), heatmap, and completed-work layer
-- Issue cards and a full complaint history with before / during / after evidence that is appended, never overwritten
-- Citizen verification, dispute/reopen, and community confirmation that feeds road-condition confidence
-- Road Assist: destination search, OSRM routing (with a local fallback), route comparison, flood-aware warnings, quick roadside reports, post-trip feedback, and layer toggles
-- Agency dashboard, assigned-complaint map, status updates, evidence upload, performance stats, and a road-management view
-- Privacy: no public phone/email; map pins and Near Me use approximated public locations
+- Full-screen interactive civic map of Greater Accra
+- Issue cards and a complaint history with before / during / after evidence that is appended, never overwritten
+- Citizen verification and dispute
+- Road Assist on the web app
+- Privacy: no public phone/email; map pins use approximated public locations
 
-Routing uses [OSRM](https://project-osrm.org/) behind a small provider interface so the mapping backend can be swapped later. Geocoding prefers the built-in Accra place index, then Nominatim.
-
-Data is stored in the browser for this MVP (Zustand + localStorage). Reset it from **Profile → Reset demo data**.
-
-## Android Studio
-
-The native citizen app lives in **`android/`**. Open that folder in Android Studio (File → Open), sync SDK 35, and run on an API 26+ device or emulator.
-
-See [ANDROID.md](ANDROID.md) for the project layout, demo logins, and what is (and is not) in this first native slice. The web app above remains the full reference for Road Assist and agency tools.
-=======
-# civic-assist
->>>>>>> origin/main
+Data for this MVP lives on the device / in the browser. Do not invent completed-work counts or extra years. If a year has no records, it is 0.
